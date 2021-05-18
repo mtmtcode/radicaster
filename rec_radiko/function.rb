@@ -12,6 +12,6 @@ concater = Radicaster::RecRadiko::Ffmpeg.new
 recorder = Radicaster::RecRadiko::Recorder.new(radiko, concater)
 
 s3 = Aws::S3::Client.new
-storage = Radigo::RecRadiko::S3.new(s3)
+storage = Radicaster::RecRadiko::S3.new(s3)
 
-handler = Radicaster::RecRadiko::Handler.new(logger, recorder, storage)
+Handler = Radicaster::RecRadiko::Handler.new(logger, recorder, storage)

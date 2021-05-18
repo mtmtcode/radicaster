@@ -1,5 +1,17 @@
 task :run => :build do
-  sh "docker run -it --rm --platform=linux/amd64 -p 9000:8080 --env-file local.env radicaster/rec-radiko:latest"
+  sh <<-EOS
+  docker run \
+  -it \
+  --rm \
+  --platform=linux/amd64 \
+  -p 9000:8080 \
+  -e RADIKO_MAIL \
+  -e RADIKO_PASSWORD \
+  -e AWS_REGION \
+  -e AWS_ACCESS_KEY_ID \
+  -e AWS_SECRET_ACCESS_KEY \
+  radicaster/rec-radiko:latest
+  EOS
 end
 
 task :build do

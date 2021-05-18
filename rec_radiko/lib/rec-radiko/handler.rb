@@ -56,11 +56,11 @@ module Radicaster
         File.open(local_path, "rb") do |f|
           storage.save(cmd.bucket, upload_key, f)
         end
-        logger.info("Finished saving the episode")
+        logger.info("Finished saving the episode. bucket:#{cmd.bucket} key:#{upload_key}")
       end
 
       def make_upload_path(prefix, start)
-        yyyymmdd = start[0..7]
+        yyyymmdd = start.to_s[0..7]
         "#{prefix}#{yyyymmdd}.m4a"
       end
     end
