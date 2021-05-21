@@ -5,7 +5,7 @@ module Radicaster
     class S3
       FEED_FILENAME = "index.rss"
       DEFINITION_FILENAME = "radicaster.yaml"
-      EPISODE_EXTS = [".m4a", ".mp3"]
+      EPISODE_EXTS = [".m4a"]
 
       def initialize(client, bucket, url)
         @client = client

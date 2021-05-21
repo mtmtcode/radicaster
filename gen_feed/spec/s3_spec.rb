@@ -38,7 +38,7 @@ module Radicaster::GenFeed
     describe "#list_episodes" do
       it "search audio files from specified path and returns an array of Episode" do
         # mocking s3 response
-        ep1_key = "#{program_id}/20210101.mp3"
+        ep1_key = "#{program_id}/20210101.m4a"
         ep2_key = "#{program_id}/20210102.m4a"
         non_audio_key = "#{program_id}/20210101.txt"
         ep1_obj = instance_double(Aws::S3::Types::Object, "ep1", key: ep1_key, size: 100, last_modified: Time.now)
@@ -57,7 +57,7 @@ module Radicaster::GenFeed
                           )
                             .and_return(resp)
         episodes = s3.list_episodes(program_id)
-        expect(episodes.map(&:title)).to eq(["20210102.m4a", "20210101.mp3"])
+        expect(episodes.map(&:title)).to eq(["20210102.m4a", "20210101.m4a"])
       end
     end
 
