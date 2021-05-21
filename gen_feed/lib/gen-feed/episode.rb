@@ -9,7 +9,7 @@ module Radicaster
         @last_modified = last_modified
       end
 
-      def filename
+      def title
         url.split("/")[-1]
       end
     end

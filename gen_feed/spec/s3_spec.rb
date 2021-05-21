@@ -11,11 +11,11 @@ module Radicaster::GenFeed
 
     describe "#find_definition" do
       let(:def_body) do
-        <<-EOS
-        title: dummy-title
-        author: dummy-author
-        summary: dummy-summary
-        image: http://foo.test/bar.png
+        <<~EOS
+          title: dummy-title
+          author: dummy-author
+          summary: dummy-summary
+          image: http://foo.test/bar.png
         EOS
       end
 
@@ -57,7 +57,7 @@ module Radicaster::GenFeed
                           )
                             .and_return(resp)
         episodes = s3.list_episodes(program_id)
-        expect(episodes.map(&:filename)).to eq(["20210102.m4a", "20210101.mp3"])
+        expect(episodes.map(&:title)).to eq(["20210102.m4a", "20210101.mp3"])
       end
     end
 

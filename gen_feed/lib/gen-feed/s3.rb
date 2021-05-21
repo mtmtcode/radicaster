@@ -38,7 +38,7 @@ module Radicaster
             last_modified: c.last_modified,
           )
         }
-          .sort_by(&:filename)
+          .sort_by(&:title)
           .reverse
       end
 
