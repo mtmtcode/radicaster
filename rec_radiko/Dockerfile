@@ -5,6 +5,7 @@ COPY ./Gemfile ./Gemfile
 COPY ./Gemfile.lock ./Gemfile.lock
 RUN bundle install --path=vendor/bundle
 
+
 FROM amazon/aws-lambda-ruby:2.7
 WORKDIR /var/task
 
