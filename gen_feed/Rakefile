@@ -5,7 +5,11 @@ task :run => :build do
        --rm \
        --platform=linux/amd64 \
        -p 9001:8080 \
-       --env-file .env \
+       -e AWS_REGION \
+       -e S3_BUCKET \
+       -e BUCKET_URL \
+       -e AWS_ACCESS_KEY_ID \
+       -e AWS_SECRET_ACCESS_KEY \
        radicaster/gen-feed:latest
      EOS
 end
