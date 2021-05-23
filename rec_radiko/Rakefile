@@ -7,6 +7,7 @@ task :run => :build do
        -p 9000:8080 \
        -e RADIKO_MAIL \
        -e RADIKO_PASSWORD \
+       -e S3_BUCKET \
        -e AWS_REGION \
        -e AWS_ACCESS_KEY_ID \
        -e AWS_SECRET_ACCESS_KEY \

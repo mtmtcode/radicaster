@@ -4,6 +4,16 @@ require "aws-sdk-s3"
 
 module Radicaster
   module RecRadiko
+    class RecCommand
+      attr_reader :station_id, :program_id, :starts, :area
+
+      def initialize(station_id:, program_id:, starts:, area:)
+        @station_id = station_id
+        @program_id = program_id
+        @starts = starts
+        @area = area
+      end
+    end
 
     # CloudWatchのイベントをハンドルしてradikoを録音する
     class Handler
@@ -15,8 +25,8 @@ module Radicaster
 
       def handle(event:, context:)
         logger.debug(event)
-        # TODO バリデーション
-        cmd = gen_command(event)
+        validate(event)
+        cmd = build_command(event)
         exec(cmd)
       end
 
@@ -24,56 +34,43 @@ module Radicaster
 
       attr_reader :logger, :recorder, :storage
 
-      def gen_command(event)
-        id = event["id"]
+      def validate(event)
+        raise "station_id must be set" unless event["station_id"]
+        raise "program_id must be set" unless event["program_id"]
+        raise "area must be set" unless event["area"]
+        raise "start(s) must be set" unless event["start"] || event["startsa"]
+      end
+
+      def build_command(event)
+        station_id = event["station_id"]
+        program_id = event["program_id"]
+        area = event["area"]
         starts = event["starts"]
         if !starts && event["start"]
           starts = [event["start"]]
         end
-        bucket = event["bucket"]
-        upload_prefix = event["upload_prefix"]
-        area = event["area"]
 
-        now = Time.new()
-        parsed_starts = starts.map { |s| StartTime.parse(now, s) }
+        today = Date.today
+        parsed_starts = starts.map { |s| StartTime.parse(today, s) }
 
         RecCommand.new(
-          id: id,
-          starts: parsed_starts,
+          station_id: station_id,
+          program_id: program_id,
           area: area,
-          bucket: bucket,
-          upload_prefix: upload_prefix,
+          starts: parsed_starts,
         )
       end
 
       def exec(cmd)
         logger.info("Start recording")
-        local_path = recorder.rec(cmd.area, cmd.id, cmd.starts)
+        local_path = recorder.rec(cmd.area, cmd.station_id, cmd.starts)
         logger.info("Finished recording")
 
         logger.info("Saving the episode to the storage")
-        upload_key = make_upload_path(cmd.upload_prefix, cmd.starts[0])
         File.open(local_path, "rb") do |f|
-          storage.save(cmd.bucket, upload_key, f)
+          storage.save(cmd.program_id, cmd.starts[0], f)
         end
-        logger.info("Finished saving the episode. bucket:#{cmd.bucket} key:#{upload_key}")
-      end
-
-      def make_upload_path(prefix, start)
-        yyyymmdd = start.to_s[0..7]
-        "#{prefix}#{yyyymmdd}.m4a"
-      end
-    end
-
-    class RecCommand
-      attr_reader :id, :starts, :bucket, :upload_prefix, :area
-
-      def initialize(id:, starts:, area:, bucket:, upload_prefix:)
-        @id = id
-        @starts = starts
-        @area = area
-        @bucket = bucket
-        @upload_prefix = upload_prefix
+        logger.info("Finished saving the episode.")
       end
     end
   end

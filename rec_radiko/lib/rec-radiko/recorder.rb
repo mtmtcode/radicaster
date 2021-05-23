@@ -6,8 +6,8 @@ module Radicaster
         @concater = concater
       end
 
-      def rec(area, id, starts)
-        paths = starts.map { |start| radiko.rec(area, id, start) }
+      def rec(area, station_id, starts)
+        paths = starts.map { |start| radiko.rec(area, station_id, start) }
         concater.concat(paths)
       end
 
