@@ -17,9 +17,20 @@ module Radicaster::CLI
         )
       }
       let(:client) { instance_double(Aws::S3::Client) }
-      subject(:s3) { S3.new(client) }
+      let(:bucket) { "radicaster.test" }
+      subject(:s3) { S3.new(client, bucket) }
       it "puts definition file to S3 bucket" do
-        expect(client).to receive(:put_object)
+        allow(def_).to receive(:to_yaml).and_return("dummy yaml")
+        # expect(client).to receive(:put_object).with(
+        #   bucket: "radicaster.test",
+        #   key: "test/radicaster.yaml",
+        #   body: StringIO.new("dummy yaml"),
+        # )
+        expect(client).to receive(:put_object).with(
+          satisfy("expected args") do |arg|
+            arg[:bucket] == "radicaster.test" && arg[:key] == "test/radicater.yaml" && body.read == "dummy yaml"
+          end
+        )
         s3.save_definition(def_)
       end
     end
