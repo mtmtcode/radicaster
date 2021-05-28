@@ -51,6 +51,10 @@ module Radicaster
         local_path = recorder.rec(cmd.area, cmd.id, cmd.starts)
         logger.info("Finished recording")
 
+        # TODO 抽象度上げる
+        # - recしたらEpisode(?)が返ってくる
+        # - storageにはEpisodeを渡す
+
         logger.info("Saving the episode to the storage")
         upload_key = make_upload_path(cmd.upload_prefix, cmd.starts[0])
         File.open(local_path, "rb") do |f|

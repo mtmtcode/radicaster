@@ -1,3 +1,5 @@
+require "yaml"
+
 class Definition
   attr_reader(
     :program_id,
