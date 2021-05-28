@@ -33,5 +33,36 @@ module Radicaster::CLI
         tmp.unlink
       end
     end
+
+    describe "#to_yaml" do
+      subject(:def_) {
+        Definition.new(
+          id: "test",
+          title: "test title",
+          author: "test author",
+          image: "http://radicaster.test/example.png",
+          program_starts: [
+            Schedule.new(wday: "Tue", hour: 1, min: 0),
+            Schedule.new(wday: "Tue", hour: 2, min: 0),
+          ],
+          rec_start: Schedule.new(wday: "Tue", hour: 3, min: 3),
+          station: "TBS",
+          area: "JP13",
+        )
+      }
+
+      it "returns expected yaml string" do
+        expect(YAML.load(def_.to_yaml)).to eq({
+          "id" => "test",
+          "title" => "test title",
+          "author" => "test author",
+          "image" => "http://radicaster.test/example.png",
+          "program_starts" => ["Tue 01:00:00", "Tue 02:00:00"],
+          "rec_start" => "Tue 03:03:00",
+          "station" => "TBS",
+          "area" => "JP13",
+        })
+      end
+    end
   end
 end
