@@ -9,7 +9,7 @@ module Radicaster::CLI
       client.put_object(
         bucket: bucket,
         key: "#{def_.program_id}/radicaster.yaml",
-        body: StringIO.new("dummy yaml"),
+        body: StringIO.new(def_.to_yaml),
       )
     end
 

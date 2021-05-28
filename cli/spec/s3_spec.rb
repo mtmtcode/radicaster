@@ -21,14 +21,11 @@ module Radicaster::CLI
       subject(:s3) { S3.new(client, bucket) }
       it "puts definition file to S3 bucket" do
         allow(def_).to receive(:to_yaml).and_return("dummy yaml")
-        # expect(client).to receive(:put_object).with(
-        #   bucket: "radicaster.test",
-        #   key: "test/radicaster.yaml",
-        #   body: StringIO.new("dummy yaml"),
-        # )
         expect(client).to receive(:put_object).with(
-          satisfy("expected args") do |arg|
-            arg[:bucket] == "radicaster.test" && arg[:key] == "test/radicater.yaml" && body.read == "dummy yaml"
+          satisfy do |arg|
+            arg[:bucket] == "radicaster.test" &&
+            arg[:key] == "test/radicaster.yaml" &&
+            arg[:body].read == "dummy yaml"
           end
         )
         s3.save_definition(def_)
