@@ -38,7 +38,7 @@ module Radicaster
         raise "station must be set" unless event["station"]
         raise "id must be set" unless event["id"]
         raise "area must be set" unless event["area"]
-        raise "start(s) must be set" unless event["start"] || event["startsa"]
+        raise "start(s) must be set" unless event["start"] || event["starts"]
       end
 
       def build_command(event)
