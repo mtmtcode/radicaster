@@ -41,4 +41,8 @@ class Schedule
     min_pad = "%#02d" % @min
     "#{@wday} #{hour_pad}:#{min_pad}:00"
   end
+
+  def to_yaml()
+    to_s
+  end
 end

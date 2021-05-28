@@ -55,5 +55,10 @@ module Radicaster::CLI
       subject { Schedule.new(wday: "Tue", hour: 1, min: 2).to_s }
       it { is_expected.to eq("Tue 01:02:00") }
     end
+
+    describe "#to_yaml" do
+      subject { Schedule.new(wday: "Tue", hour: 1, min: 2).to_yaml }
+      it { is_expected.to eq("Tue 01:02:00") }
+    end
   end
 end

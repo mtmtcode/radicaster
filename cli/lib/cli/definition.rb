@@ -52,4 +52,17 @@ class Definition
     @station = station
     @area = area
   end
+
+  def to_yaml()
+    {
+      "id" => id,
+      "title" => title,
+      "author" => author,
+      "image" => image,
+      "program_starts" => program_starts.map(&:to_yaml),
+      "rec_start" => rec_start.to_yaml,
+      "station" => station,
+      "area" => area,
+    }.to_yaml
+  end
 end
