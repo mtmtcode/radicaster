@@ -7,10 +7,10 @@ require "yaml"
 module Radicaster
   module GenFeed
     class GenerateFeedCommand
-      attr_reader :program_id
+      attr_reader :id
 
-      def initialize(program_id:)
-        @program_id = program_id
+      def initialize(id:)
+        @id = id
       end
     end
 
@@ -48,18 +48,18 @@ module Radicaster
       def build_cmd(event)
         key = event["Records"][0]["s3"]["object"]["key"]
         logger.debug(key)
-        program_id = Pathname.new(key).dirname.to_s
+        id = Pathname.new(key).dirname.to_s
         GenerateFeedCommand.new(
-          program_id: program_id,
+          id: id,
         )
       end
 
       def exec(cmd)
-        logger.debug("Start exec. program_id: #{cmd}")
-        definition = storage.find_definition(cmd.program_id)
-        episodes = storage.list_episodes(cmd.program_id)
+        logger.debug("Start exec. id: #{cmd}")
+        definition = storage.find_definition(cmd.id)
+        episodes = storage.list_episodes(cmd.id)
         feed = generator.generate(definition, episodes)
-        storage.save_feed(cmd.program_id, feed)
+        storage.save_feed(cmd.id, feed)
       end
     end
   end

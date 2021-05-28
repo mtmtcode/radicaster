@@ -13,8 +13,8 @@ module Radicaster
         @url = url
       end
 
-      def find_definition(program_id)
-        key = "#{program_id}/#{DEFINITION_FILENAME}"
+      def find_definition(id)
+        key = "#{id}/#{DEFINITION_FILENAME}"
         resp = client.get_object(bucket: bucket, key: key)
         def_hash = YAML.load(resp.body.read)
         Definition.new(
@@ -25,8 +25,8 @@ module Radicaster
         )
       end
 
-      def list_episodes(program_id)
-        prefix = program_id + "/"
+      def list_episodes(id)
+        prefix = id + "/"
         resp = client.list_objects_v2(bucket: bucket, prefix: prefix)
         resp
           .contents
@@ -42,8 +42,8 @@ module Radicaster
           .reverse
       end
 
-      def save_feed(program_id, feed_body)
-        key = "#{program_id}/#{FEED_FILENAME}"
+      def save_feed(id, feed_body)
+        key = "#{id}/#{FEED_FILENAME}"
         client.put_object(
           bucket: bucket,
           key: key,
