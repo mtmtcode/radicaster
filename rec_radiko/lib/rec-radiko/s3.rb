@@ -6,8 +6,8 @@ module Radicaster
         @bucket = bucket
       end
 
-      def save(program_id, start, io)
-        key = make_key(program_id, start)
+      def save(id, start, io)
+        key = make_key(id, start)
         client.put_object(bucket: bucket, key: key, body: io)
       end
 
@@ -15,9 +15,9 @@ module Radicaster
 
       attr_reader :client, :bucket
 
-      def make_key(program_id, start)
+      def make_key(id, start)
         yyyymmdd = start.to_s[0..7]
-        "#{program_id}/#{yyyymmdd}.m4a"
+        "#{id}/#{yyyymmdd}.m4a"
       end
     end
   end

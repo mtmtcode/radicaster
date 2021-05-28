@@ -6,8 +6,8 @@ module Radicaster::CLI
       it "loads definition from the specified file" do
         tmp = Tempfile.new("dummy")
         tmp.write(<<~EOS
-          program_id: test
-          station_id: TEST
+          id: test
+          station: TEST
           area: JP13
           title: test title
           author: test author
@@ -21,8 +21,8 @@ module Radicaster::CLI
         tmp.close
 
         def_ = Definition.load(tmp.path)
-        expect(def_.program_id).to eq("test")
-        expect(def_.station_id).to eq("TEST")
+        expect(def_.id).to eq("test")
+        expect(def_.station).to eq("TEST")
         expect(def_.area).to eq("JP13")
         expect(def_.title).to eq("test title")
         expect(def_.author).to eq("test author")

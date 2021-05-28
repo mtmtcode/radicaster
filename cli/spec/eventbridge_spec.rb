@@ -3,13 +3,13 @@ module Radicaster::CLI
     describe "#schedule" do
       let(:def_) {
         Definition.new(
-          program_id: "test",
+          id: "test",
           title: "test title",
           author: "test author",
           image: "https://radicaster.test/exmaple.png",
           program_starts: program_starts,
           rec_start: rec_start,
-          station_id: "TBS",
+          station: "TBS",
           area: "JP13",
         )
       }
@@ -35,7 +35,7 @@ module Radicaster::CLI
           targets: [{
             id: "rec-radiko",
             arn: "arn:aws:lambda:dummy",
-            input: %q/{"id":"test","area":"JP13","station_id":"TBS","starts":["Tue 01:00:00","Tue 02:00:00"]}/,
+            input: %q/{"id":"test","area":"JP13","station":"TBS","starts":["Tue 01:00:00","Tue 02:00:00"]}/,
           }],
         )
         eb.register(def_)

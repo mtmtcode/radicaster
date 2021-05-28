@@ -12,19 +12,19 @@ module Radicaster
 
       def register(def_)
         client.put_rule(
-          name: def_.program_id,
+          name: def_.id,
           schedule_expression: def_.rec_start.cron,
         )
 
         input = {
-          id: def_.program_id,
+          id: def_.id,
           area: def_.area,
-          station_id: def_.station_id,
+          station: def_.station,
           starts: def_.program_starts.map(&:to_s),
         }
 
         client.put_targets(
-          rule: def_.program_id,
+          rule: def_.id,
           targets: [{
             id: TARGET_ID_RADIKO,
             arn: func_arn_map[TARGET_ID_RADIKO],
