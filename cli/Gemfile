@@ -8,7 +8,11 @@ ruby "~> 2.7.0"
 
 gem "aws-sdk-s3"
 gem "aws-sdk-eventbridge"
-gem "rspec", "~> 3.0"
-gem "rspec-its"
-gem "rspec-parameterized"
-gem "rspec-mocks"
+
+group :development, :test do
+  gem "rspec", "~> 3.0"
+  gem "rspec-its"
+  gem "rspec-parameterized"
+  gem "rspec-mocks"
+  gem "guard-rspec", require: false
+end
