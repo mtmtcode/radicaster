@@ -2,13 +2,13 @@ require "yaml"
 
 class Definition
   attr_reader(
-    :program_id,
+    :id,
     :title,
     :author,
     :image,
     :program_starts,
     :rec_start,
-    :station_id,
+    :station,
     :area
   )
 
@@ -20,13 +20,13 @@ class Definition
       rec_start = Schedule.parse(h["rec_start"])
 
       def_ = self.new(
-        program_id: h["program_id"],
+        id: h["id"],
         title: h["title"],
         author: h["author"],
         image: h["image"],
         program_starts: program_starts,
         rec_start: rec_start,
-        station_id: h["station_id"],
+        station: h["station"],
         area: h["area"],
       )
       def_
@@ -34,22 +34,22 @@ class Definition
   end
 
   def initialize(
-    program_id:,
+    id:,
     title:,
     author:,
     image:,
     program_starts:,
     rec_start:,
-    station_id:,
+    station:,
     area:
   )
-    @program_id = program_id
+    @id = id
     @title = title
     @author = author
     @image = image
     @program_starts = program_starts
     @rec_start = rec_start
-    @station_id = station_id
+    @station = station
     @area = area
   end
 end

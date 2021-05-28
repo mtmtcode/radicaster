@@ -5,11 +5,11 @@ require "aws-sdk-s3"
 module Radicaster
   module RecRadiko
     class RecCommand
-      attr_reader :station_id, :program_id, :starts, :area
+      attr_reader :station, :id, :starts, :area
 
-      def initialize(station_id:, program_id:, starts:, area:)
-        @station_id = station_id
-        @program_id = program_id
+      def initialize(station:, id:, starts:, area:)
+        @station = station
+        @id = id
         @starts = starts
         @area = area
       end
@@ -35,15 +35,15 @@ module Radicaster
       attr_reader :logger, :recorder, :storage
 
       def validate(event)
-        raise "station_id must be set" unless event["station_id"]
-        raise "program_id must be set" unless event["program_id"]
+        raise "station must be set" unless event["station"]
+        raise "id must be set" unless event["id"]
         raise "area must be set" unless event["area"]
         raise "start(s) must be set" unless event["start"] || event["startsa"]
       end
 
       def build_command(event)
-        station_id = event["station_id"]
-        program_id = event["program_id"]
+        station = event["station"]
+        id = event["id"]
         area = event["area"]
         starts = event["starts"]
         if !starts && event["start"]
@@ -54,8 +54,8 @@ module Radicaster
         parsed_starts = starts.map { |s| StartTime.parse(today, s) }
 
         RecCommand.new(
-          station_id: station_id,
-          program_id: program_id,
+          station: station,
+          id: id,
           area: area,
           starts: parsed_starts,
         )
@@ -63,7 +63,7 @@ module Radicaster
 
       def exec(cmd)
         logger.info("Start recording")
-        local_path = recorder.rec(cmd.area, cmd.station_id, cmd.starts)
+        local_path = recorder.rec(cmd.area, cmd.station, cmd.starts)
         logger.info("Finished recording")
 
         # TODO 抽象度上げる
@@ -72,7 +72,7 @@ module Radicaster
 
         logger.info("Saving the episode to the storage")
         File.open(local_path, "rb") do |f|
-          storage.save(cmd.program_id, cmd.starts[0], f)
+          storage.save(cmd.id, cmd.starts[0], f)
         end
         logger.info("Finished saving the episode.")
       end

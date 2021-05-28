@@ -5,7 +5,7 @@ module Radicaster::CLI
       let(:bucket) { "radicaster.test" }
       let(:def_) {
         instance_double(Definition,
-                        program_id: "test",
+                        id: "test",
                         to_yaml: "dummy yaml")
       }
       subject(:s3) { S3.new(client, bucket) }
