@@ -5,9 +5,9 @@ task :run => :build do
        --rm \
        --platform=linux/amd64 \
        -p 9000:8080 \
-       -e RADIKO_MAIL \
-       -e RADIKO_PASSWORD \
-       -e S3_BUCKET \
+       -e RADICASTER_RADIKO_MAIL \
+       -e RADICASTER_RADIKO_PASSWORD \
+       -e RADICASTER_S3_BUCKET \
        -e AWS_REGION \
        -e AWS_ACCESS_KEY_ID \
        -e AWS_SECRET_ACCESS_KEY \
