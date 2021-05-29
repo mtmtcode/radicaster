@@ -7,7 +7,9 @@ require "aws-sdk-s3"
 logger = Logger.new(STDOUT)
 
 radigo_home = "/tmp"
-radiko = Radicaster::RecRadiko::Radigo.new(radigo_home)
+radiko_mail = ENV["RADIKO_MAIL"]
+radiko_password = ENV["RADIKO_PASSWORD"]
+radiko = Radicaster::RecRadiko::Radigo.new(radigo_home, radiko_mail, radiko_password)
 concater = Radicaster::RecRadiko::Ffmpeg.new
 recorder = Radicaster::RecRadiko::Recorder.new(radiko, concater)
 
