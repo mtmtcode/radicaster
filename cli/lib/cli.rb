@@ -13,11 +13,11 @@ module Radicaster
   module CLI
     def main(argv)
       region = ENV["AWS_REGION"] or raise "ENV['AWS_REGION'] must be set"
-      bucket = ENV["S3_BUCKET"] or raise "ENV['S3_BUCKET'] must be set"
+      bucket = ENV["RADICASTER_S3_BUCKET"] or raise "ENV['RADICASTER_S3_BUCKET'] must be set"
       s3_client = Aws::S3::Client.new(region: region)
       storage = S3.new(s3_client, bucket)
 
-      rec_radiko_arn = ENV["REC_RADIKO_ARN"] or raise "ENV['REC_RADIKO_ARN'] must be set"
+      rec_radiko_arn = ENV["RADICASTER_REC_RADIKO_ARN"] or raise "ENV['RADICASTER_REC_RADIKO_ARN'] must be set"
       func_arn_map = {
         EventBridge::TARGET_ID_RADIKO => rec_radiko_arn,
       }

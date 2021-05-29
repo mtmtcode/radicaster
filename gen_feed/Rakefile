@@ -6,8 +6,8 @@ task :run => :build do
        --platform=linux/amd64 \
        -p 9001:8080 \
        -e AWS_REGION \
-       -e S3_BUCKET \
-       -e BUCKET_URL \
+       -e RADICASTER_S3_BUCKET \
+       -e RADICASTER_BUCKET_URL \
        -e AWS_ACCESS_KEY_ID \
        -e AWS_SECRET_ACCESS_KEY \
        radicaster/gen-feed:latest
