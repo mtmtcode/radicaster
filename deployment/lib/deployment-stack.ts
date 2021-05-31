@@ -1,8 +1,9 @@
-import { Bucket, BucketProps } from '@aws-cdk/aws-s3';
+import { Bucket, BucketProps, EventType } from '@aws-cdk/aws-s3';
 import * as cdk from '@aws-cdk/core';
 import { Code, DockerImageCode, DockerImageFunction, Function } from '@aws-cdk/aws-lambda';
 import { DockerImage, Duration } from '@aws-cdk/core';
 import { Effect, ManagedPolicy, Policy, PolicyDocument, PolicyStatement, Role, ServicePrincipal } from '@aws-cdk/aws-iam';
+import { S3EventSource } from '@aws-cdk/aws-lambda-event-sources';
 
 export class DeploymentStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -43,20 +44,33 @@ export class DeploymentStack extends cdk.Stack {
     }
     bucket.grantPut(funcRecRadiko.role);
 
-    // Image
-    // new Function(this, 'lambda-rec-radiko', {
-    //   functionName: 'rec-radiko',
-
-    //   environment: {
-    //     // TODO
-    //   },
-    // })
-
     // gen-feed
-    // - Lambda作る
-    // - ECRのリポジトリ作る？
-    // - バケットのイベントから発火するように
+    const funcGenFeed = new DockerImageFunction(this, 'func-gen-feed', {
+      code: DockerImageCode.fromImageAsset(
+        "../gen_feed"
+      ),
+      timeout: Duration.minutes(1),
+      memorySize: 128,
+      environment: {
+        "RADICASTER_S3_BUCKET": bucketName,
+        "RADICASTER_BUCKET_URL": bucketURL,
+      }
+    });
+    funcRecRadiko.grantInvoke(new ServicePrincipal("events.amazonaws.com"));
+    if (!funcGenFeed.role) {
+      throw new Error("funcGenFeed.role is undefined");
+    }
+    bucket.grantPut(funcRecRadiko.role);
 
+    funcRecRadiko.addEventSource(new S3EventSource(
+      bucket,
+      {
+        events: [EventType.OBJECT_CREATED],
+        filters: [{
+          suffix: ".m4a"
+        }],
+      }
+    ))
   }
 
   private getEnv(key: string): string {
