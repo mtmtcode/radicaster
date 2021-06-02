@@ -6,7 +6,7 @@ require "aws-sdk-s3"
 
 logger = Logger.new(STDOUT)
 
-region = ENV["AWS_REGION"] or raise "ENV['AWS_REGION'] must be set"
+region = ENV["AWS_REGION"]
 bucket = ENV["RADICASTER_S3_BUCKET"] or raise "ENV['RADICASTER_S3_BUCKET'] must be set"
 url = ENV["RADICASTER_BUCKET_URL"] or raise "ENV['RADICASTER_BUCKET_URL'] must be set"
 
