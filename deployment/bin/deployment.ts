@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from '@aws-cdk/core';
-import { DeploymentStack } from '../lib/deployment-stack';
+import { RadicasterStack } from '../lib/deployment-stack';
+
+const suffix = process.env.RADICASTER_CDK_SUFFIX || '';
 
 const app = new cdk.App();
-new DeploymentStack(app, 'DeploymentStack', {
+new RadicasterStack(app, `RadicasterStack${suffix}`, {
+
   /* If you don't specify 'env', this stack will be environment-agnostic.
    * Account/Region-dependent features and context lookups will not work,
    * but a single synthesized template can be deployed anywhere. */

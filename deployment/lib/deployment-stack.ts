@@ -6,17 +6,19 @@ import { Effect, ManagedPolicy, Policy, PolicyDocument, PolicyStatement, Role, S
 import { S3EventSource } from '@aws-cdk/aws-lambda-event-sources';
 
 interface Params {
+  suffix: string;
   bucketName: string;
   bucketURL: string;
   radikoMail?: string;
   radikoPassword?: string;
 }
 
-export class DeploymentStack extends cdk.Stack {
+export class RadicasterStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     const params: Params = {
+      suffix: this.getEnv('RADICASTER_CDK_SUFFIX') || '',
       bucketName: this.mustGetEnv("RADICASTER_S3_BUCKET"),
       bucketURL: this.mustGetEnv("RADICASTER_BUCKET_URL"),
       radikoMail: this.getEnv('RADICASTER_RADIKO_MAIL'),
@@ -50,10 +52,11 @@ export class DeploymentStack extends cdk.Stack {
       };
     }
 
-    const funcRecRadiko = new DockerImageFunction(this, 'func-rec-radiko', {
+    const funcRecRadiko = new DockerImageFunction(this, `func-rec-radiko`, {
       code: DockerImageCode.fromImageAsset(
         "../rec_radiko"
       ),
+      functionName: `radicaster-rec-radiko${params.suffix}`,
       timeout: Duration.minutes(10),
       memorySize: 768,
       environment: recRadikoEnvironment,
@@ -67,10 +70,11 @@ export class DeploymentStack extends cdk.Stack {
   }
 
   private setUpFuncGenFeed(bucket: Bucket, params: Params) {
-    const funcGenFeed = new DockerImageFunction(this, 'func-gen-feed', {
+    const funcGenFeed = new DockerImageFunction(this, `func-gen-feed`, {
       code: DockerImageCode.fromImageAsset(
         "../gen_feed"
       ),
+      functionName: `radicaster-gen-feed${params.suffix}`,
       timeout: Duration.minutes(1),
       memorySize: 128,
       environment: {
@@ -83,6 +87,7 @@ export class DeploymentStack extends cdk.Stack {
       throw new Error("funcGenFeed.role is undefined");
     }
     bucket.grantPut(funcGenFeed.role);
+    bucket.grantRead(funcGenFeed.role);
 
     funcGenFeed.addEventSource(new S3EventSource(
       bucket,
