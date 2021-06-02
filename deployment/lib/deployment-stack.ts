@@ -5,35 +5,48 @@ import { DockerImage, Duration } from '@aws-cdk/core';
 import { Effect, ManagedPolicy, Policy, PolicyDocument, PolicyStatement, Role, ServicePrincipal } from '@aws-cdk/aws-iam';
 import { S3EventSource } from '@aws-cdk/aws-lambda-event-sources';
 
+interface Params {
+  bucketName: string;
+  bucketURL: string;
+  radikoMail?: string;
+  radikoPassword?: string;
+}
+
 export class DeploymentStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // The code that defines your stack goes here
-    const bucketName = this.mustGetEnv("RADICASTER_S3_BUCKET");
-    const bucketURL = this.mustGetEnv("RADICASTER_BUCKET_URL");
-    const radikoMail = this.getEnv('RADICASTER_RADIKO_MAIL');
-    const radikoPassword = this.getEnv('RADICASTER_RADIKO_PASSWORD');
+    const params: Params = {
+      bucketName: this.mustGetEnv("RADICASTER_S3_BUCKET"),
+      bucketURL: this.mustGetEnv("RADICASTER_BUCKET_URL"),
+      radikoMail: this.getEnv('RADICASTER_RADIKO_MAIL'),
+      radikoPassword: this.getEnv('RADICASTER_RADIKO_PASSWORD'),
+    }
 
-    // S3
-    const bucketProps: BucketProps = {
-      bucketName: bucketName,
+    const bucket = this.setUpS3Bucket(params);
+    this.setUpFuncRecRadiko(bucket, params);
+    this.setUpFuncGenFeed(bucket, params);
+  }
+
+  private setUpS3Bucket(params: Params) {
+    return new Bucket(this, 'bucket', {
+      bucketName: params.bucketName,
       websiteIndexDocument: 'index.rss',
       publicReadAccess: true,
-    };
-    const bucket = new Bucket(this, 'bucket', bucketProps);
+    });
+  }
 
-    // rec-radiko
+  private setUpFuncRecRadiko(bucket: Bucket, params: Params) {
     let recRadikoEnvironment
-    if (radikoMail && radikoPassword) {
+    if (params.radikoMail && params.radikoPassword) {
       recRadikoEnvironment = {
-        "RADICASTER_RADIKO_MAIL": radikoMail,
-        "RADICASTER_RADIKO_PASSWORD": radikoPassword,
-        "RADICASTER_S3_BUCKET": bucketName
+        "RADICASTER_RADIKO_MAIL": params.radikoMail,
+        "RADICASTER_RADIKO_PASSWORD": params.radikoPassword,
+        "RADICASTER_S3_BUCKET": params.bucketName
       };
     } else {
       recRadikoEnvironment = {
-        "RADICASTER_S3_BUCKET": bucketName
+        "RADICASTER_S3_BUCKET": params.bucketName
       };
     }
 
@@ -50,8 +63,10 @@ export class DeploymentStack extends cdk.Stack {
       throw new Error("funcRecRadiko.role is undefined");
     }
     bucket.grantPut(funcRecRadiko.role);
+    return funcRecRadiko;
+  }
 
-    // gen-feed
+  private setUpFuncGenFeed(bucket: Bucket, params: Params) {
     const funcGenFeed = new DockerImageFunction(this, 'func-gen-feed', {
       code: DockerImageCode.fromImageAsset(
         "../gen_feed"
@@ -59,17 +74,17 @@ export class DeploymentStack extends cdk.Stack {
       timeout: Duration.minutes(1),
       memorySize: 128,
       environment: {
-        "RADICASTER_S3_BUCKET": bucketName,
-        "RADICASTER_BUCKET_URL": bucketURL,
+        "RADICASTER_S3_BUCKET": params.bucketName,
+        "RADICASTER_BUCKET_URL": params.bucketURL,
       }
     });
-    funcRecRadiko.grantInvoke(new ServicePrincipal("events.amazonaws.com"));
+    funcGenFeed.grantInvoke(new ServicePrincipal("events.amazonaws.com"));
     if (!funcGenFeed.role) {
       throw new Error("funcGenFeed.role is undefined");
     }
-    bucket.grantPut(funcRecRadiko.role);
+    bucket.grantPut(funcGenFeed.role);
 
-    funcRecRadiko.addEventSource(new S3EventSource(
+    funcGenFeed.addEventSource(new S3EventSource(
       bucket,
       {
         events: [EventType.OBJECT_CREATED],
@@ -77,7 +92,8 @@ export class DeploymentStack extends cdk.Stack {
           suffix: ".m4a"
         }],
       }
-    ))
+    ));
+    return funcGenFeed;
   }
 
   private mustGetEnv(key: string): string {
