@@ -10,9 +10,8 @@ export class DeploymentStack extends cdk.Stack {
     super(scope, id, props);
 
     // The code that defines your stack goes here
-    const bucketName = this.getEnv('RADICASTER_S3_BUCKET');
-    const bucketURL = this.getEnv('RADICASTER_BUCKET_URL');
-    // TODO メールとパスワードは任意なのでエラー出ないように
+    const bucketName = this.mustGetEnv("RADICASTER_S3_BUCKET");
+    const bucketURL = this.mustGetEnv("RADICASTER_BUCKET_URL");
     const radikoMail = this.getEnv('RADICASTER_RADIKO_MAIL');
     const radikoPassword = this.getEnv('RADICASTER_RADIKO_PASSWORD');
 
@@ -25,18 +24,26 @@ export class DeploymentStack extends cdk.Stack {
     const bucket = new Bucket(this, 'bucket', bucketProps);
 
     // rec-radiko
+    let recRadikoEnvironment
+    if (radikoMail && radikoPassword) {
+      recRadikoEnvironment = {
+        "RADICASTER_RADIKO_MAIL": radikoMail,
+        "RADICASTER_RADIKO_PASSWORD": radikoPassword,
+        "RADICASTER_S3_BUCKET": bucketName
+      };
+    } else {
+      recRadikoEnvironment = {
+        "RADICASTER_S3_BUCKET": bucketName
+      };
+    }
+
     const funcRecRadiko = new DockerImageFunction(this, 'func-rec-radiko', {
       code: DockerImageCode.fromImageAsset(
         "../rec_radiko"
       ),
       timeout: Duration.minutes(10),
       memorySize: 768,
-      environment: {
-        // TODO Secrets Managerとか使う
-        "RADICASTER_RADIKO_MAIL": radikoMail,
-        "RADICASTER_RADIKO_PASSWORD": radikoPassword,
-        "RADICASTER_S3_BUCKET": bucketName,
-      }
+      environment: recRadikoEnvironment,
     });
     funcRecRadiko.grantInvoke(new ServicePrincipal("events.amazonaws.com"));
     if (!funcRecRadiko.role) {
@@ -73,11 +80,15 @@ export class DeploymentStack extends cdk.Stack {
     ))
   }
 
-  private getEnv(key: string): string {
-    const value = process.env[key]
+  private mustGetEnv(key: string): string {
+    const value = this.getEnv(key);
     if (!value) {
       throw new Error(`environment variable ${key} must be set`);
     }
     return value;
+  }
+
+  private getEnv(key: string): string | undefined {
+    return process.env[key];
   }
 }
