@@ -17,6 +17,7 @@ module Radicaster::RecRadiko
           end
         end
       end
+
       context "abnormal cases" do
         where(:email, :password) do
           [
@@ -41,9 +42,13 @@ module Radicaster::RecRadiko
       context "when credentials are not specified" do
         subject(:radiko) { Radigo.new(workdir) }
         it "executes radigo without credentials" do
-          expect(radiko).to receive(:system).with("env RADIGO_HOME=/tmp radigo rec -area=JP13 -id=TBS -s=20201122010000", exception: true)
+          allow(radiko).to receive(:system)
+
           ret = radiko.rec(area, id, start)
-          expect(ret).to eq("#{workdir}/#{start}-#{id}.aac")
+
+          expect(ret).to eq("/tmp/20201122010000-TBS.aac")
+          expect(radiko).to have_received(:system).with("rm -f /tmp/20201122010000-TBS.aac").ordered
+          expect(radiko).to have_received(:system).with("env RADIGO_HOME=/tmp radigo rec -area=JP13 -id=TBS -s=20201122010000", exception: true).ordered
         end
       end
 
@@ -52,9 +57,13 @@ module Radicaster::RecRadiko
         let(:password) { "password" }
         subject(:radiko) { Radigo.new(workdir, email, password) }
         it "executes radigo with credentials" do
-          expect(radiko).to receive(:system).with("env RADIGO_HOME=/tmp RADIKO_MAIL=test@radicaster.test RADIKO_PASSWORD=password radigo rec -area=JP13 -id=TBS -s=20201122010000", exception: true)
+          allow(radiko).to receive(:system)
+
           ret = radiko.rec(area, id, start)
-          expect(ret).to eq("#{workdir}/#{start}-#{id}.aac")
+
+          expect(ret).to eq("/tmp/20201122010000-TBS.aac")
+          expect(radiko).to have_received(:system).with("rm -f /tmp/20201122010000-TBS.aac").ordered
+          expect(radiko).to have_received(:system).with("env RADIGO_HOME=/tmp RADIKO_MAIL=test@radicaster.test RADIKO_PASSWORD=password radigo rec -area=JP13 -id=TBS -s=20201122010000", exception: true).ordered
         end
       end
     end
