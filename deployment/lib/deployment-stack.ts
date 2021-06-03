@@ -1,9 +1,12 @@
 import { Bucket, BucketProps, EventType } from '@aws-cdk/aws-s3';
 import * as cdk from '@aws-cdk/core';
-import { Code, DockerImageCode, DockerImageFunction, Function } from '@aws-cdk/aws-lambda';
+import { Code, DockerImageCode, DockerImageFunction, Function, InlineCode, Runtime } from '@aws-cdk/aws-lambda';
 import { DockerImage, Duration } from '@aws-cdk/core';
 import { Effect, ManagedPolicy, Policy, PolicyDocument, PolicyStatement, Role, ServicePrincipal } from '@aws-cdk/aws-iam';
 import { S3EventSource } from '@aws-cdk/aws-lambda-event-sources';
+import { Distribution, experimental, LambdaEdgeEventType } from '@aws-cdk/aws-cloudfront';
+import * as path from 'path';
+import { S3Origin } from '@aws-cdk/aws-cloudfront-origins';
 
 interface Params {
   suffix: string;
@@ -28,6 +31,7 @@ export class RadicasterStack extends cdk.Stack {
     const bucket = this.setUpS3Bucket(params);
     this.setUpFuncRecRadiko(bucket, params);
     this.setUpFuncGenFeed(bucket, params);
+    this.setUpBasicAuth(bucket, params);
   }
 
   private setUpS3Bucket(params: Params) {
@@ -99,6 +103,30 @@ export class RadicasterStack extends cdk.Stack {
       }
     ));
     return funcGenFeed;
+  }
+
+  private setUpBasicAuth(bucket: Bucket, params: Params) {
+
+
+    const fn = new experimental.EdgeFunction(this, 'basic-auth-func', {
+      code: Code.fromAsset(path.join(__dirname, '../asset/basic_auth')),
+      handler: "function.handle",
+      runtime: Runtime.RUBY_2_7,
+      functionName: `radicaster-basic-auth${params.suffix}`,
+      memorySize: 128,
+    });
+
+    new Distribution(this, 'cloudfront', {
+      defaultBehavior: {
+        origin: new S3Origin(bucket, {}),
+        edgeLambdas: [
+          {
+            eventType: LambdaEdgeEventType.VIEWER_REQUEST,
+            functionVersion: fn.currentVersion,
+          }
+        ],
+      },
+    });
   }
 
   private mustGetEnv(key: string): string {
