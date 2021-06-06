@@ -4,7 +4,7 @@ import { Code, DockerImageCode, DockerImageFunction, Function, InlineCode, Runti
 import { DockerImage, Duration } from '@aws-cdk/core';
 import { Effect, ManagedPolicy, Policy, PolicyDocument, PolicyStatement, Role, ServicePrincipal } from '@aws-cdk/aws-iam';
 import { S3EventSource } from '@aws-cdk/aws-lambda-event-sources';
-import { Distribution, experimental, LambdaEdgeEventType } from '@aws-cdk/aws-cloudfront';
+import { Distribution, experimental, LambdaEdgeEventType, OriginAccessIdentity } from '@aws-cdk/aws-cloudfront';
 import * as path from 'path';
 import { S3Origin } from '@aws-cdk/aws-cloudfront-origins';
 
@@ -31,14 +31,14 @@ export class RadicasterStack extends cdk.Stack {
     const bucket = this.setUpS3Bucket(params);
     this.setUpFuncRecRadiko(bucket, params);
     this.setUpFuncGenFeed(bucket, params);
-    this.setUpBasicAuth(bucket, params);
+    this.setUpCloudFront(bucket, params);
   }
 
   private setUpS3Bucket(params: Params) {
     return new Bucket(this, 'bucket', {
       bucketName: params.bucketName,
       websiteIndexDocument: 'index.rss',
-      publicReadAccess: true,
+      publicReadAccess: false,
     });
   }
 
@@ -105,7 +105,7 @@ export class RadicasterStack extends cdk.Stack {
     return funcGenFeed;
   }
 
-  private setUpBasicAuth(bucket: Bucket, params: Params) {
+  private setUpCloudFront(bucket: Bucket, params: Params) {
     const fn = new experimental.EdgeFunction(this, 'basic-auth-func', {
       code: Code.fromAsset(path.join(__dirname, '../assets/basic_auth')),
       handler: "function.handler",
@@ -114,9 +114,13 @@ export class RadicasterStack extends cdk.Stack {
       memorySize: 128,
     });
 
+    const oai = new OriginAccessIdentity(this, 'oai', {});
+
     new Distribution(this, 'cloudfront', {
       defaultBehavior: {
-        origin: new S3Origin(bucket, {}),
+        origin: new S3Origin(bucket, {
+          originAccessIdentity: oai,
+        }),
         edgeLambdas: [
           {
             eventType: LambdaEdgeEventType.VIEWER_REQUEST,
