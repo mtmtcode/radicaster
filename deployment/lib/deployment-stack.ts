@@ -1,7 +1,7 @@
 import { Certificate } from '@aws-cdk/aws-certificatemanager';
 import { Distribution, experimental, LambdaEdgeEventType, OriginAccessIdentity, ViewerProtocolPolicy } from '@aws-cdk/aws-cloudfront';
 import { S3Origin } from '@aws-cdk/aws-cloudfront-origins';
-import { ServicePrincipal } from '@aws-cdk/aws-iam';
+import { CanonicalUserPrincipal, Effect, PolicyStatement, ServicePrincipal } from '@aws-cdk/aws-iam';
 import { Code, DockerImageCode, DockerImageFunction, Runtime } from '@aws-cdk/aws-lambda';
 import { S3EventSource } from '@aws-cdk/aws-lambda-event-sources';
 import { Bucket, EventType } from '@aws-cdk/aws-s3';
@@ -40,8 +40,6 @@ export class RadicasterStack extends cdk.Stack {
   private setUpS3Bucket(params: Params) {
     return new Bucket(this, 'bucket', {
       bucketName: params.bucketName,
-      websiteIndexDocument: 'index.rss',
-      publicReadAccess: false,
     });
   }
 
@@ -77,6 +75,7 @@ export class RadicasterStack extends cdk.Stack {
   }
 
   private setUpFuncGenFeed(bucket: Bucket, dist: Distribution, params: Params) {
+    const authPrefix = `radicaster:password@`
     const domainName = params.customDomain || dist.domainName;
     const funcGenFeed = new DockerImageFunction(this, `func-gen-feed`, {
       code: DockerImageCode.fromImageAsset(
@@ -87,7 +86,7 @@ export class RadicasterStack extends cdk.Stack {
       memorySize: 128,
       environment: {
         "RADICASTER_S3_BUCKET": params.bucketName,
-        "RADICASTER_BUCKET_URL": `https://${domainName}`,
+        "RADICASTER_BUCKET_URL": `https://${authPrefix}${domainName}`,
       }
     });
     funcGenFeed.grantInvoke(new ServicePrincipal("events.amazonaws.com"));
@@ -118,7 +117,15 @@ export class RadicasterStack extends cdk.Stack {
       memorySize: 128,
     });
 
-    const oai = new OriginAccessIdentity(this, 'oai', {});
+    const oai = new OriginAccessIdentity(this, 'oai');
+    bucket.addToResourcePolicy(new PolicyStatement({
+      effect: Effect.ALLOW,
+      actions: ["s3:GetObject"],
+      principals: [
+        new CanonicalUserPrincipal(oai.cloudFrontOriginAccessIdentityS3CanonicalUserId),
+      ],
+      resources: [bucket.bucketArn + "/*"],
+    }));
 
     const domainNames = params.customDomain ? [params.customDomain] : undefined;
     const certificate = params.customDomainCertificateARN ? Certificate.fromCertificateArn(this, 'certificate', params.customDomainCertificateARN) : undefined;
