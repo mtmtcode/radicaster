@@ -1,14 +1,22 @@
-import { Bucket, BucketProps, EventType } from '@aws-cdk/aws-s3';
-import * as cdk from '@aws-cdk/core';
-import { Code, DockerImageCode, DockerImageFunction, Function } from '@aws-cdk/aws-lambda';
-import { DockerImage, Duration } from '@aws-cdk/core';
-import { Effect, ManagedPolicy, Policy, PolicyDocument, PolicyStatement, Role, ServicePrincipal } from '@aws-cdk/aws-iam';
+import { Certificate } from '@aws-cdk/aws-certificatemanager';
+import { CachePolicy, Distribution, experimental, LambdaEdgeEventType, OriginAccessIdentity, ViewerProtocolPolicy } from '@aws-cdk/aws-cloudfront';
+import { S3Origin } from '@aws-cdk/aws-cloudfront-origins';
+import { CanonicalUserPrincipal, Effect, PolicyStatement, ServicePrincipal } from '@aws-cdk/aws-iam';
+import { Code, DockerImageCode, DockerImageFunction, Runtime } from '@aws-cdk/aws-lambda';
 import { S3EventSource } from '@aws-cdk/aws-lambda-event-sources';
+import { Bucket, EventType } from '@aws-cdk/aws-s3';
+import * as cdk from '@aws-cdk/core';
+import { Duration } from '@aws-cdk/core';
+import { readFileSync } from 'fs';
+import * as path from 'path';
 
 interface Params {
   suffix: string;
   bucketName: string;
-  bucketURL: string;
+  customDomain?: string;
+  customDomainCertificateARN?: string
+  basicAuthUser: string
+  basicAuthPassword: string
   radikoMail?: string;
   radikoPassword?: string;
 }
@@ -20,21 +28,23 @@ export class RadicasterStack extends cdk.Stack {
     const params: Params = {
       suffix: this.getEnv('RADICASTER_CDK_SUFFIX') || '',
       bucketName: this.mustGetEnv("RADICASTER_S3_BUCKET"),
-      bucketURL: this.mustGetEnv("RADICASTER_BUCKET_URL"),
+      customDomain: this.getEnv('RADICASTER_CUSTOM_DOMAIN'),
+      customDomainCertificateARN: this.getEnv('RADICASTER_CUSTOM_DOMAIN_CERT_ARN'),
+      basicAuthUser: this.mustGetEnv("RADICASTER_BASIC_AUTH_USER"),
+      basicAuthPassword: this.mustGetEnv("RADICASTER_BASIC_AUTH_PASSWORD"),
       radikoMail: this.getEnv('RADICASTER_RADIKO_MAIL'),
       radikoPassword: this.getEnv('RADICASTER_RADIKO_PASSWORD'),
     }
 
     const bucket = this.setUpS3Bucket(params);
+    const dist = this.setUpCloudFront(bucket, params);
     this.setUpFuncRecRadiko(bucket, params);
-    this.setUpFuncGenFeed(bucket, params);
+    this.setUpFuncGenFeed(bucket, dist, params);
   }
 
   private setUpS3Bucket(params: Params) {
     return new Bucket(this, 'bucket', {
       bucketName: params.bucketName,
-      websiteIndexDocument: 'index.rss',
-      publicReadAccess: true,
     });
   }
 
@@ -69,7 +79,9 @@ export class RadicasterStack extends cdk.Stack {
     return funcRecRadiko;
   }
 
-  private setUpFuncGenFeed(bucket: Bucket, params: Params) {
+  private setUpFuncGenFeed(bucket: Bucket, dist: Distribution, params: Params) {
+    const authPrefix = `${params.basicAuthUser}:${params.basicAuthPassword}@`
+    const domainName = params.customDomain || dist.domainName;
     const funcGenFeed = new DockerImageFunction(this, `func-gen-feed`, {
       code: DockerImageCode.fromImageAsset(
         "../gen_feed"
@@ -79,7 +91,7 @@ export class RadicasterStack extends cdk.Stack {
       memorySize: 128,
       environment: {
         "RADICASTER_S3_BUCKET": params.bucketName,
-        "RADICASTER_BUCKET_URL": params.bucketURL,
+        "RADICASTER_BUCKET_URL": `https://${authPrefix}${domainName}`,
       }
     });
     funcGenFeed.grantInvoke(new ServicePrincipal("events.amazonaws.com"));
@@ -99,6 +111,55 @@ export class RadicasterStack extends cdk.Stack {
       }
     ));
     return funcGenFeed;
+  }
+
+  private setUpCloudFront(bucket: Bucket, params: Params) {
+    const code = readFileSync(path.join(__dirname, '../assets/basic_auth/function.js'))
+      .toString()
+      .replace(/__BASIC_AUTH_USER__/, params.basicAuthUser)
+      .replace(/__BASIC_AUTH_PASSWORD__/, params.basicAuthPassword);
+    const fn = new experimental.EdgeFunction(this, 'basic-auth-func', {
+      code: Code.fromInline(code),
+      handler: "index.handler",
+      // NOTE: Node 14.x does not support inline code
+      runtime: Runtime.NODEJS_12_X,
+      functionName: `radicaster-basic-auth${params.suffix}`,
+      memorySize: 128,
+    });
+
+    const oai = new OriginAccessIdentity(this, 'oai');
+    bucket.addToResourcePolicy(new PolicyStatement({
+      effect: Effect.ALLOW,
+      actions: ["s3:GetObject"],
+      principals: [
+        new CanonicalUserPrincipal(oai.cloudFrontOriginAccessIdentityS3CanonicalUserId),
+      ],
+      resources: [bucket.bucketArn + "/*"],
+    }));
+
+    const domainNames = params.customDomain ? [params.customDomain] : undefined;
+    const certificate = params.customDomainCertificateARN ? Certificate.fromCertificateArn(this, 'certificate', params.customDomainCertificateARN) : undefined;
+    const dist = new Distribution(this, 'cloudfront', {
+      certificate: certificate,
+      domainNames: domainNames,
+      defaultBehavior: {
+        origin: new S3Origin(bucket, {
+          originAccessIdentity: oai,
+        }),
+        edgeLambdas: [
+          {
+            eventType: LambdaEdgeEventType.VIEWER_REQUEST,
+            functionVersion: fn.currentVersion,
+          }
+        ],
+        viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        cachePolicy: new CachePolicy(this, 'cache-policy', {
+          defaultTtl: Duration.minutes(1),
+          maxTtl: Duration.minutes(1),
+        })
+      },
+    });
+    return dist;
   }
 
   private mustGetEnv(key: string): string {
