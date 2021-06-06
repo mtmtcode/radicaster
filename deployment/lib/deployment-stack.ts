@@ -1,16 +1,19 @@
-import { Bucket, BucketProps, EventType } from '@aws-cdk/aws-s3';
-import * as cdk from '@aws-cdk/core';
-import { Code, DockerImageCode, DockerImageFunction, Function, InlineCode, Runtime } from '@aws-cdk/aws-lambda';
-import { DockerImage, Duration } from '@aws-cdk/core';
-import { Effect, ManagedPolicy, Policy, PolicyDocument, PolicyStatement, Role, ServicePrincipal } from '@aws-cdk/aws-iam';
-import { S3EventSource } from '@aws-cdk/aws-lambda-event-sources';
+import { Certificate } from '@aws-cdk/aws-certificatemanager';
 import { Distribution, experimental, LambdaEdgeEventType, OriginAccessIdentity, ViewerProtocolPolicy } from '@aws-cdk/aws-cloudfront';
-import * as path from 'path';
 import { S3Origin } from '@aws-cdk/aws-cloudfront-origins';
+import { ServicePrincipal } from '@aws-cdk/aws-iam';
+import { Code, DockerImageCode, DockerImageFunction, Runtime } from '@aws-cdk/aws-lambda';
+import { S3EventSource } from '@aws-cdk/aws-lambda-event-sources';
+import { Bucket, EventType } from '@aws-cdk/aws-s3';
+import * as cdk from '@aws-cdk/core';
+import { Duration } from '@aws-cdk/core';
+import * as path from 'path';
 
 interface Params {
   suffix: string;
   bucketName: string;
+  customDomain?: string;
+  customDomainCertificateARN?: string
   radikoMail?: string;
   radikoPassword?: string;
 }
@@ -22,6 +25,8 @@ export class RadicasterStack extends cdk.Stack {
     const params: Params = {
       suffix: this.getEnv('RADICASTER_CDK_SUFFIX') || '',
       bucketName: this.mustGetEnv("RADICASTER_S3_BUCKET"),
+      customDomain: this.getEnv('RADICASTER_CUSTOM_DOMAIN'),
+      customDomainCertificateARN: this.getEnv('RADICASTER_CUSTOM_DOMAIN_CERT_ARN'),
       radikoMail: this.getEnv('RADICASTER_RADIKO_MAIL'),
       radikoPassword: this.getEnv('RADICASTER_RADIKO_PASSWORD'),
     }
@@ -72,6 +77,7 @@ export class RadicasterStack extends cdk.Stack {
   }
 
   private setUpFuncGenFeed(bucket: Bucket, dist: Distribution, params: Params) {
+    const domainName = params.customDomain || dist.domainName;
     const funcGenFeed = new DockerImageFunction(this, `func-gen-feed`, {
       code: DockerImageCode.fromImageAsset(
         "../gen_feed"
@@ -81,7 +87,7 @@ export class RadicasterStack extends cdk.Stack {
       memorySize: 128,
       environment: {
         "RADICASTER_S3_BUCKET": params.bucketName,
-        "RADICASTER_BUCKET_URL": `https://${dist.domainName}`,
+        "RADICASTER_BUCKET_URL": `https://${domainName}`,
       }
     });
     funcGenFeed.grantInvoke(new ServicePrincipal("events.amazonaws.com"));
@@ -114,7 +120,11 @@ export class RadicasterStack extends cdk.Stack {
 
     const oai = new OriginAccessIdentity(this, 'oai', {});
 
+    const domainNames = params.customDomain ? [params.customDomain] : undefined;
+    const certificate = params.customDomainCertificateARN ? Certificate.fromCertificateArn(this, 'certificate', params.customDomainCertificateARN) : undefined;
     const dist = new Distribution(this, 'cloudfront', {
+      certificate: certificate,
+      domainNames: domainNames,
       defaultBehavior: {
         origin: new S3Origin(bucket, {
           originAccessIdentity: oai,
