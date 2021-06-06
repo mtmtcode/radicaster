@@ -1,5 +1,5 @@
 import { Certificate } from '@aws-cdk/aws-certificatemanager';
-import { Distribution, experimental, LambdaEdgeEventType, OriginAccessIdentity, ViewerProtocolPolicy } from '@aws-cdk/aws-cloudfront';
+import { CachePolicy, Distribution, experimental, LambdaEdgeEventType, OriginAccessIdentity, ViewerProtocolPolicy } from '@aws-cdk/aws-cloudfront';
 import { S3Origin } from '@aws-cdk/aws-cloudfront-origins';
 import { CanonicalUserPrincipal, Effect, PolicyStatement, ServicePrincipal } from '@aws-cdk/aws-iam';
 import { Code, DockerImageCode, DockerImageFunction, Runtime } from '@aws-cdk/aws-lambda';
@@ -153,6 +153,10 @@ export class RadicasterStack extends cdk.Stack {
           }
         ],
         viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        cachePolicy: new CachePolicy(this, 'cache-policy', {
+          defaultTtl: Duration.minutes(1),
+          maxTtl: Duration.minutes(1),
+        })
       },
     });
     return dist;
