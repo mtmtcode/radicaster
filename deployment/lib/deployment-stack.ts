@@ -7,6 +7,7 @@ import { S3EventSource } from '@aws-cdk/aws-lambda-event-sources';
 import { Bucket, EventType } from '@aws-cdk/aws-s3';
 import * as cdk from '@aws-cdk/core';
 import { Duration } from '@aws-cdk/core';
+import { readFileSync } from 'fs';
 import * as path from 'path';
 
 interface Params {
@@ -14,6 +15,8 @@ interface Params {
   bucketName: string;
   customDomain?: string;
   customDomainCertificateARN?: string
+  basicAuthUser: string
+  basicAuthPassword: string
   radikoMail?: string;
   radikoPassword?: string;
 }
@@ -27,6 +30,8 @@ export class RadicasterStack extends cdk.Stack {
       bucketName: this.mustGetEnv("RADICASTER_S3_BUCKET"),
       customDomain: this.getEnv('RADICASTER_CUSTOM_DOMAIN'),
       customDomainCertificateARN: this.getEnv('RADICASTER_CUSTOM_DOMAIN_CERT_ARN'),
+      basicAuthUser: this.mustGetEnv("RADICASTER_BASIC_AUTH_USER"),
+      basicAuthPassword: this.mustGetEnv("RADICASTER_BASIC_AUTH_PASSWORD"),
       radikoMail: this.getEnv('RADICASTER_RADIKO_MAIL'),
       radikoPassword: this.getEnv('RADICASTER_RADIKO_PASSWORD'),
     }
@@ -75,7 +80,7 @@ export class RadicasterStack extends cdk.Stack {
   }
 
   private setUpFuncGenFeed(bucket: Bucket, dist: Distribution, params: Params) {
-    const authPrefix = `radicaster:password@`
+    const authPrefix = `${params.basicAuthUser}:${params.basicAuthPassword}@`
     const domainName = params.customDomain || dist.domainName;
     const funcGenFeed = new DockerImageFunction(this, `func-gen-feed`, {
       code: DockerImageCode.fromImageAsset(
@@ -109,10 +114,15 @@ export class RadicasterStack extends cdk.Stack {
   }
 
   private setUpCloudFront(bucket: Bucket, params: Params) {
+    const code = readFileSync(path.join(__dirname, '../assets/basic_auth/function.js'))
+      .toString()
+      .replace(/__BASIC_AUTH_USER__/, params.basicAuthUser)
+      .replace(/__BASIC_AUTH_PASSWORD__/, params.basicAuthPassword);
     const fn = new experimental.EdgeFunction(this, 'basic-auth-func', {
-      code: Code.fromAsset(path.join(__dirname, '../assets/basic_auth')),
-      handler: "function.handler",
-      runtime: Runtime.NODEJS_14_X,
+      code: Code.fromInline(code),
+      handler: "index.handler",
+      // NOTE: Node 14.x does not support inline code
+      runtime: Runtime.NODEJS_12_X,
       functionName: `radicaster-basic-auth${params.suffix}`,
       memorySize: 128,
     });
