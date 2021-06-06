@@ -4,14 +4,13 @@ import { Code, DockerImageCode, DockerImageFunction, Function, InlineCode, Runti
 import { DockerImage, Duration } from '@aws-cdk/core';
 import { Effect, ManagedPolicy, Policy, PolicyDocument, PolicyStatement, Role, ServicePrincipal } from '@aws-cdk/aws-iam';
 import { S3EventSource } from '@aws-cdk/aws-lambda-event-sources';
-import { Distribution, experimental, LambdaEdgeEventType, OriginAccessIdentity } from '@aws-cdk/aws-cloudfront';
+import { Distribution, experimental, LambdaEdgeEventType, OriginAccessIdentity, ViewerProtocolPolicy } from '@aws-cdk/aws-cloudfront';
 import * as path from 'path';
 import { S3Origin } from '@aws-cdk/aws-cloudfront-origins';
 
 interface Params {
   suffix: string;
   bucketName: string;
-  bucketURL: string;
   radikoMail?: string;
   radikoPassword?: string;
 }
@@ -23,15 +22,14 @@ export class RadicasterStack extends cdk.Stack {
     const params: Params = {
       suffix: this.getEnv('RADICASTER_CDK_SUFFIX') || '',
       bucketName: this.mustGetEnv("RADICASTER_S3_BUCKET"),
-      bucketURL: this.mustGetEnv("RADICASTER_BUCKET_URL"),
       radikoMail: this.getEnv('RADICASTER_RADIKO_MAIL'),
       radikoPassword: this.getEnv('RADICASTER_RADIKO_PASSWORD'),
     }
 
     const bucket = this.setUpS3Bucket(params);
+    const dist = this.setUpCloudFront(bucket, params);
     this.setUpFuncRecRadiko(bucket, params);
-    this.setUpFuncGenFeed(bucket, params);
-    this.setUpCloudFront(bucket, params);
+    this.setUpFuncGenFeed(bucket, dist, params);
   }
 
   private setUpS3Bucket(params: Params) {
@@ -73,7 +71,7 @@ export class RadicasterStack extends cdk.Stack {
     return funcRecRadiko;
   }
 
-  private setUpFuncGenFeed(bucket: Bucket, params: Params) {
+  private setUpFuncGenFeed(bucket: Bucket, dist: Distribution, params: Params) {
     const funcGenFeed = new DockerImageFunction(this, `func-gen-feed`, {
       code: DockerImageCode.fromImageAsset(
         "../gen_feed"
@@ -83,7 +81,7 @@ export class RadicasterStack extends cdk.Stack {
       memorySize: 128,
       environment: {
         "RADICASTER_S3_BUCKET": params.bucketName,
-        "RADICASTER_BUCKET_URL": params.bucketURL,
+        "RADICASTER_BUCKET_URL": `https://${dist.domainName}`,
       }
     });
     funcGenFeed.grantInvoke(new ServicePrincipal("events.amazonaws.com"));
@@ -116,7 +114,7 @@ export class RadicasterStack extends cdk.Stack {
 
     const oai = new OriginAccessIdentity(this, 'oai', {});
 
-    new Distribution(this, 'cloudfront', {
+    const dist = new Distribution(this, 'cloudfront', {
       defaultBehavior: {
         origin: new S3Origin(bucket, {
           originAccessIdentity: oai,
@@ -127,8 +125,10 @@ export class RadicasterStack extends cdk.Stack {
             functionVersion: fn.currentVersion,
           }
         ],
+        viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       },
     });
+    return dist;
   }
 
   private mustGetEnv(key: string): string {
