@@ -106,11 +106,9 @@ export class RadicasterStack extends cdk.Stack {
   }
 
   private setUpBasicAuth(bucket: Bucket, params: Params) {
-
-
     const fn = new experimental.EdgeFunction(this, 'basic-auth-func', {
-      code: Code.fromAsset(path.join(__dirname, '../asset/basic_auth')),
-      handler: "function.handle",
+      code: Code.fromAsset(path.join(__dirname, '../assets/basic_auth')),
+      handler: "function.handler",
       runtime: Runtime.NODEJS_14_X,
       functionName: `radicaster-basic-auth${params.suffix}`,
       memorySize: 128,
