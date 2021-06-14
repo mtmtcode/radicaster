@@ -1,5 +1,41 @@
 module Radicaster::RecRadiko
   describe ScheduleTime do
+    describe ".parse" do
+      subject { ScheduleTime.parse(input) }
+      context "valid format" do
+        where(:input) do
+          [
+            ["tue 01:02:03"],
+            ["Tue 01:02:03"],
+            ["TUE 01:02:03"],
+            ["tue 1:2:3"],
+          ]
+        end
+
+        let(:expected) { ScheduleTime.new("tue", 1, 2, 3) }
+        with_them do
+          it { is_expected.to eq(expected) }
+        end
+      end
+
+      context "invalid format" do
+        where(:input) do
+          [
+            ["aaa 01:00:00"],
+            ["tue 30:00:00"],
+            ["tue 01:60:00"],
+            ["tue 01:00:60"],
+          ]
+        end
+
+        with_them do
+          it "raises a RuntimeError" do
+            expect { ScheduleTime.parse(input) }.to raise_error(ArgumentError)
+          end
+        end
+      end
+    end
+
     describe "#==" do
       let(:this) { ScheduleTime.new("tue", 1, 0, 0) }
       where(:other, :expected) do

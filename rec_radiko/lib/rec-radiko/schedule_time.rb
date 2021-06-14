@@ -6,9 +6,20 @@ module Radicaster
       DAYS_OF_WEEK = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
       TIMEZONE_JP = "+09:00"
 
+      def self.parse(s)
+        m = s.chomp.downcase.match(/\A(sun|mon|tue|wed|thu|fri|sat) ([0-2]?[0-9]):([0-5]?[0-9]):([0-5]?[0-9])\z/)
+        raise ArgumentError, "invalid format" unless m
+
+        wday = m[1]
+        hour = m[2].to_i
+        min = m[3].to_i
+        sec = m[4].to_i
+        self.new(wday, hour, min, sec)
+      end
+
       def initialize(wday, hour, min, sec)
         raise "wday is invalid" if DAYS_OF_WEEK.index(wday.downcase).nil?
-        @wday = wday
+        @wday = wday.downcase
         @hour = hour
         @min = min
         @sec = sec
