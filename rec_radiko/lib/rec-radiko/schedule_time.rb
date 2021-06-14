@@ -7,11 +7,19 @@ module Radicaster
       TIMEZONE_JP = "+09:00"
 
       def initialize(wday, hour, min, sec)
-        # TODO normalize
+        raise "wday is invalid" if DAYS_OF_WEEK.index(wday.downcase).nil?
         @wday = wday
         @hour = hour
         @min = min
         @sec = sec
+      end
+
+      def ==(other)
+        return false unless other.is_a? ScheduleTime
+        (wday.downcase == other.wday.downcase &&
+         hour == other.hour &&
+         min == other.min &&
+         sec == other.sec)
       end
 
       def latest(now)
