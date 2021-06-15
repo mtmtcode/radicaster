@@ -7,6 +7,11 @@ module Radicaster
         @items = items
       end
 
+      def ==(other)
+        return false unless other.is_a? Schedule
+        items == other.items
+      end
+
       def latest(now)
         # 各itemをlatestを取得して、最初の要素が直近のものを返す
         items
