@@ -3,7 +3,7 @@
 
 # radicaster
 
-radicasterは、AWS上で動作するradikoを録音・Podcast化するアプリケーションです。
+radicasterはAWSの各種マネージサービスを活用し、radikoのお好きな番組を録音・Podcast化するアプリケーションです。
 
 ## 特徴
 
