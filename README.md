@@ -25,6 +25,7 @@ radicasterは、AWS上で動作するradikoを録音・Podcast化するアプリ
 ## TODO
 
 - 録音対象番組情報の受け渡し方法変更
+- 複数曜日の録音に対応（帯番組の録音用）
 - 環境固有の情報をCDKのcontextで受け取る
 - 利用方法のドキュメント書く
 - GitHub ActionsでCI
