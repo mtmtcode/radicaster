@@ -11,7 +11,11 @@ radicasterは、AWS上で動作するradikoを録音・Podcast化するアプリ
 - AWS CDKによる簡単なデプロイ
 - 分割された番組の結合に対応
 
-## 主な使用サービス
+## 構成
+
+![](./radicaster.png)
+
+### 主な使用サービス
 
 - Lambda
 - EventBridge
