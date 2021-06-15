@@ -18,6 +18,13 @@ radicasterは、AWS上で動作するradikoを録音・Podcast化するアプリ
 - S3
 - CloudFront
 
+## TODO
+
+- 録音対象番組情報の受け渡し方法変更
+- 環境固有の情報をCDKのcontextで受け取る
+- 利用方法のドキュメント書く
+- GitHub ActionsでCI
+
 ## 利用方法
 
 TODO
