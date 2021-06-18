@@ -2,18 +2,18 @@ module Radicaster::RecRadiko
   describe Schedule do
     describe "#==" do
       let(:this) {
-        Schedule.new([
-          [ScheduleTime.new("Mon", 8, 30, 0), ScheduleTime.new("Mon", 10, 0, 0)],
-          [ScheduleTime.new("Tue", 8, 30, 0), ScheduleTime.new("Tue", 10, 0, 0)],
-        ])
+        Schedule.new(
+          [ScheduleItem.new("Mon", 8, 30, 0), ScheduleItem.new("Mon", 10, 0, 0)],
+          [ScheduleItem.new("Tue", 8, 30, 0), ScheduleItem.new("Tue", 10, 0, 0)],
+        )
       }
       where(:other, :expected) do
         [
           [nil, false],
-          [Schedule.new([[ScheduleTime.new("Mon", 8, 30, 0)]]), false],
+          [Schedule.new([ScheduleItem.new("Mon", 8, 30, 0)]), false],
           [Schedule.new([
-            [ScheduleTime.new("Mon", 8, 30, 0)],
-            [ScheduleTime.new("Mon", 10, 0, 0)],
+            [ScheduleItem.new("Mon", 8, 30, 0)],
+            [ScheduleItem.new("Mon", 10, 0, 0)],
           ]), false],
         ]
       end
@@ -30,11 +30,11 @@ module Radicaster::RecRadiko
 
       it "returns latest schedule item" do
         items = [
-          [ScheduleTime.new("Mon", 8, 30, 0), ScheduleTime.new("Mon", 10, 0, 0)],
-          [ScheduleTime.new("Tue", 8, 30, 0), ScheduleTime.new("Tue", 10, 0, 0)],
-          [ScheduleTime.new("Wed", 8, 30, 0), ScheduleTime.new("Wed", 10, 0, 0)],
-          [ScheduleTime.new("Thu", 8, 30, 0), ScheduleTime.new("Thu", 10, 0, 0)],
-          [ScheduleTime.new("Fri", 8, 30, 0), ScheduleTime.new("Fri", 10, 0, 0)],
+          [ScheduleItem.new("Mon", 8, 30, 0), ScheduleItem.new("Mon", 10, 0, 0)],
+          [ScheduleItem.new("Tue", 8, 30, 0), ScheduleItem.new("Tue", 10, 0, 0)],
+          [ScheduleItem.new("Wed", 8, 30, 0), ScheduleItem.new("Wed", 10, 0, 0)],
+          [ScheduleItem.new("Thu", 8, 30, 0), ScheduleItem.new("Thu", 10, 0, 0)],
+          [ScheduleItem.new("Fri", 8, 30, 0), ScheduleItem.new("Fri", 10, 0, 0)],
         ]
         schedule = Schedule.new(items)
 

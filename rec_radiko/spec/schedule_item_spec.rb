@@ -1,7 +1,7 @@
 module Radicaster::RecRadiko
-  describe ScheduleTime do
+  describe ScheduleItem do
     describe ".parse" do
-      subject { ScheduleTime.parse(input) }
+      subject { ScheduleItem.parse(input) }
       context "valid format" do
         where(:input) do
           [
@@ -12,7 +12,7 @@ module Radicaster::RecRadiko
           ]
         end
 
-        let(:expected) { ScheduleTime.new("tue", 1, 2, 3) }
+        let(:expected) { ScheduleItem.new("tue", 1, 2, 3) }
         with_them do
           it { is_expected.to eq(expected) }
         end
@@ -30,23 +30,23 @@ module Radicaster::RecRadiko
 
         with_them do
           it "raises a RuntimeError" do
-            expect { ScheduleTime.parse(input) }.to raise_error(ArgumentError)
+            expect { ScheduleItem.parse(input) }.to raise_error(ArgumentError)
           end
         end
       end
     end
 
     describe "#==" do
-      let(:this) { ScheduleTime.new("tue", 1, 0, 0) }
+      let(:this) { ScheduleItem.new("tue", 1, 0, 0) }
       where(:other, :expected) do
         [
-          [ScheduleTime.new("tue", 1, 0, 0), true],
-          [ScheduleTime.new("Tue", 1, 0, 0), true],
-          [ScheduleTime.new("TUE", 1, 0, 0), true],
-          [ScheduleTime.new("tue", 1, 0, 1), false],
-          [ScheduleTime.new("tue", 1, 1, 0), false],
-          [ScheduleTime.new("tue", 0, 0, 0), false],
-          [ScheduleTime.new("mon", 0, 0, 0), false],
+          [ScheduleItem.new("tue", 1, 0, 0), true],
+          [ScheduleItem.new("Tue", 1, 0, 0), true],
+          [ScheduleItem.new("TUE", 1, 0, 0), true],
+          [ScheduleItem.new("tue", 1, 0, 1), false],
+          [ScheduleItem.new("tue", 1, 1, 0), false],
+          [ScheduleItem.new("tue", 0, 0, 0), false],
+          [ScheduleItem.new("mon", 0, 0, 0), false],
           [nil, false],
         ]
       end
@@ -60,7 +60,7 @@ module Radicaster::RecRadiko
 
     describe "#latest" do
       let(:now) { Time.new(2021, 6, 14, 12, 0, 0, "+09:00") }  # monday
-      subject(:latest) { ScheduleTime.new(wday, hour, sec, min).latest(now) }
+      subject(:latest) { ScheduleItem.new(wday, hour, sec, min).latest(now) }
 
       where(:wday, :hour, :sec, :min, :expected) do
         [

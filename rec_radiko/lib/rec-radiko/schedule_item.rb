@@ -2,7 +2,7 @@ require "date"
 
 module Radicaster
   module RecRadiko
-    class ScheduleTime
+    class ScheduleItem
       DAYS_OF_WEEK = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
       TIMEZONE_JP = "+09:00"
 
@@ -26,7 +26,7 @@ module Radicaster
       end
 
       def ==(other)
-        return false unless other.is_a? ScheduleTime
+        return false unless other.is_a? ScheduleItem
         (wday.downcase == other.wday.downcase &&
          hour == other.hour &&
          min == other.min &&
