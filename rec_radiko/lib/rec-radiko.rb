@@ -1,3 +1,4 @@
+require "rec-radiko/combined_schedule_item"
 require "rec-radiko/definition"
 require "rec-radiko/ffmpeg"
 require "rec-radiko/handler"
