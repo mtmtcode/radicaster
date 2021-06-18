@@ -43,7 +43,10 @@ module Radicaster::RecRadiko
       subject(:latest) { item.latest(now) }
 
       it "returns latest scheduled time of the first element" do
-        expect(latest).to eq(Time.new(2021, 6, 14, 8, 30, 0, "+09:00"))
+        expect(latest).to eq([
+                            Time.new(2021, 6, 14, 8, 30, 0, "+09:00"),
+                            Time.new(2021, 6, 14, 10, 0, 0, "+09:00"),
+                          ])
       end
     end
   end
