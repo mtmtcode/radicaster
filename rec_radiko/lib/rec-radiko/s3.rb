@@ -6,6 +6,11 @@ module Radicaster
         @bucket = bucket
       end
 
+      def find_definition(id)
+        resp = client.get_object(bucket: bucket, key: "#{id}/radicaster.yaml")
+        Definition.parse(resp.body.read)
+      end
+
       def save(id, start, io)
         key = make_key(id, start)
         client.put_object(bucket: bucket, key: key, body: io)
