@@ -1,9 +1,9 @@
 module Radicaster::RecRadiko
   describe Definition do
     describe ".parse" do
-      subject { Definition.parse(input) }
-
       context "input is valid" do
+        subject { Definition.parse(input) }
+
         context "and has single start time" do
           let(:input) do
             <<~EOS
@@ -84,9 +84,48 @@ module Radicaster::RecRadiko
 
       context "input is invlalid" do
         context "required key not found" do
-        end
+          where(:input) do
+            [
+              [
+                <<~EOS
+                  area: JP13
+                  station: TEST
+                  program_schedule:
+                  - ["Mon 08:30:00", "Mon 10:00:00"]
+                EOS
+              ],
+              [
+                <<~EOS
+                  id: test
+                  station: TEST
+                  program_schedule:
+                  - ["Mon 08:30:00", "Mon 10:00:00"]
+                EOS
+              ],
+              [
+                <<~EOS
+                  id: test
+                  area: JP13
+                  program_schedule:
+                  - ["Mon 08:30:00", "Mon 10:00:00"]
+                EOS
+              ],
+              [
+                <<~EOS
+                  id: test
+                  area: JP13
+                  station: TEST
+                EOS
+              ],
+            ]
+          end
 
-        context "both `program_start` and `program_starts`"
+          with_them do
+            it "raises an ArgumentError" do
+              expect { Definition.parse(input) }.to raise_error(ArgumentError)
+            end
+          end
+        end
       end
     end
 
