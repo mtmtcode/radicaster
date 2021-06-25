@@ -1,3 +1,5 @@
+require "tempfile"
+
 module Radicaster::RecRadiko
   describe S3 do
     let(:client) { instance_double(Aws::S3::Client, "client") }
@@ -33,14 +35,21 @@ module Radicaster::RecRadiko
       end
     end
 
-    xdescribe "#save_episode" do
-      let(:start) { StartTime.new(Time.local(2021, 1, 1)) }
-      let(:body) { StringIO.new("dummy\nstream") }
-
-      it "uploads passed IO object to s3" do
-        key = "dummy-program/20210101.m4a"
-        expect(client).to receive(:put_object).with(bucket: bucket, key: key, body: body)
-        s3.save(id, start, body)
+    describe "#save_episode" do
+      let(:episode) {
+        Episode.new(
+          id: "test",
+          station: "TEST",
+          start_time: Time.new(2021, 6, 22, 1, 0, 0, "+09:00"),
+          local_path: Tempfile.new.path,
+        )
+      }
+      it "uploads episode to s3" do
+        expect(client).to receive(:put_object).with(hash_including(
+          bucket: bucket,
+          key: "test/20210622.m4a",
+        ))
+        s3.save_episode(episode)
       end
     end
   end
