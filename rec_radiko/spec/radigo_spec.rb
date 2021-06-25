@@ -36,19 +36,19 @@ module Radicaster::RecRadiko
 
     describe "#rec" do
       let(:area) { "JP13" }
-      let(:id) { "TBS" }
-      let(:start) { StartTime.new(Time.local(2020, 11, 22, 1, 0, 0)) }
+      let(:id) { "TEST" }
+      let(:start_time) { Time.new(2020, 11, 22, 1, 0, 0, "+09:00") }
 
       context "when credentials are not specified" do
         subject(:radiko) { Radigo.new(workdir) }
         it "executes radigo without credentials" do
           allow(radiko).to receive(:system)
 
-          ret = radiko.rec(area, id, start)
+          ret = radiko.rec(area, id, start_time)
 
-          expect(ret).to eq("/tmp/20201122010000-TBS.aac")
-          expect(radiko).to have_received(:system).with("rm -f /tmp/20201122010000-TBS.aac").ordered
-          expect(radiko).to have_received(:system).with("env RADIGO_HOME=/tmp radigo rec -area=JP13 -id=TBS -s=20201122010000", exception: true).ordered
+          expect(ret).to eq("/tmp/20201122010000-TEST.aac")
+          expect(radiko).to have_received(:system).with("rm -f /tmp/20201122010000-TEST.aac").ordered
+          expect(radiko).to have_received(:system).with("env RADIGO_HOME=/tmp radigo rec -area=JP13 -id=TEST -s=20201122010000", exception: true).ordered
         end
       end
 
@@ -59,11 +59,11 @@ module Radicaster::RecRadiko
         it "executes radigo with credentials" do
           allow(radiko).to receive(:system)
 
-          ret = radiko.rec(area, id, start)
+          ret = radiko.rec(area, id, start_time)
 
-          expect(ret).to eq("/tmp/20201122010000-TBS.aac")
-          expect(radiko).to have_received(:system).with("rm -f /tmp/20201122010000-TBS.aac").ordered
-          expect(radiko).to have_received(:system).with("env RADIGO_HOME=/tmp RADIKO_MAIL=test@radicaster.test RADIKO_PASSWORD=password radigo rec -area=JP13 -id=TBS -s=20201122010000", exception: true).ordered
+          expect(ret).to eq("/tmp/20201122010000-TEST.aac")
+          expect(radiko).to have_received(:system).with("rm -f /tmp/20201122010000-TEST.aac").ordered
+          expect(radiko).to have_received(:system).with("env RADIGO_HOME=/tmp RADIKO_MAIL=test@radicaster.test RADIKO_PASSWORD=password radigo rec -area=JP13 -id=TEST -s=20201122010000", exception: true).ordered
         end
       end
     end
