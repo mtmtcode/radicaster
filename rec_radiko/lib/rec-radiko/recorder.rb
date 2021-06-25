@@ -15,7 +15,7 @@ module Radicaster
           id: def_.id,
           station: def_.station,
           start_time: start_times[0],
-          local_path: "/path/to/concated.m4a",
+          local_path: concated_path,
         )
       end
 
