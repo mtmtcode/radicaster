@@ -159,5 +159,35 @@ module Radicaster::RecRadiko
         it { is_expected.to eq expected }
       end
     end
+
+    describe "#latest_start_times" do
+      let(:id) { "test" }
+      let(:area) { "JP13" }
+      let(:station) { "TEST" }
+      let(:schedule) {
+        CombinedScheduleItem.new(
+          ScheduleItem.new("Tue", 1, 0, 0),
+          ScheduleItem.new("Tue", 2, 0, 0)
+        )
+      }
+      let(:def_) {
+        Definition.new(
+          id: id,
+          area: area,
+          station: station,
+          program_schedule: schedule,
+        )
+      }
+      let(:now) { Time.new(2021, 6, 23, 0, 0, 0, "+09:00") }  # wednesday
+
+      it do
+        expect(def_.latest_start_times(now)).to eq(
+          [
+            Time.new(2021, 6, 22, 1, 0, 0, "+09:00"),
+            Time.new(2021, 6, 22, 2, 0, 0, "+09:00"),
+          ]
+        )
+      end
+    end
   end
 end

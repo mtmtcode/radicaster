@@ -44,6 +44,10 @@ module Radicaster
       def ==(other)
         id == other.id && area == other.area && station == other.station && program_schedule == other.program_schedule
       end
+
+      def latest_start_times(now)
+        program_schedule.latest(now)
+      end
     end
   end
 end
