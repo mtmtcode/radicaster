@@ -2,35 +2,72 @@ require "tempfile"
 
 module Radicaster::CLI
   describe Definition do
-    describe "load" do
-      it "loads definition from the specified file" do
-        tmp = Tempfile.new("dummy")
-        tmp.write(<<~EOS
-          id: test
-          station: TEST
-          area: JP13
-          title: test title
-          author: test author
-          image: https://radicaster.test/example.png
-          program_starts:
-          - Mon 01:00:00
-          - Mon 02:00:00
-          rec_start: Mon 03:03:00
-        EOS
-)
-        tmp.close
+    describe ".parse" do
+      context "full schedule format" do
+        it "returns parsed result" do
+          yaml_def = <<~EOS
+            id: test
+            station: TEST
+            area: JP13
+            title: test title
+            author: test author
+            image: https://radicaster.test/example.png
+            program_schedule:
+            - ["Mon 08:30:00", "Mon 10:00:00"]
+            - ["Tue 08:30:00", "Tue 10:00:00"]
+            execution_schedule:
+            - Mon 12:00:00
+            - Tue 12:00:00
+          EOS
+          def_ = Definition.parse(yaml_def)
 
-        def_ = Definition.load(tmp.path)
-        expect(def_.id).to eq("test")
-        expect(def_.station).to eq("TEST")
-        expect(def_.area).to eq("JP13")
-        expect(def_.title).to eq("test title")
-        expect(def_.author).to eq("test author")
-        expect(def_.image).to eq("https://radicaster.test/example.png")
-        # expect(def_.program_starts).to eq()
-        # expect(def_.rec_start).to eq()
-      ensure
-        tmp.unlink
+          expect(def_).to eq(Definition.new(
+            id: "test",
+            area: "JP13",
+            station: "TEST",
+            title: "test title",
+            author: "test author",
+            image: "https://radicaster.test/example.png",
+            program_schedule: [
+              ["Mon 08:30:00", "Mon 10:00:00"],
+              ["Tue 08:30:00", "Tue 10:00:00"],
+            ],
+            execution_schedule: [
+              ExecutionSchedule.new("Mon", 12, 0),
+              ExecutionSchedule.new("Tue", 12, 0),
+            ],
+          ))
+        end
+      end
+      context "simple schedule format" do
+        it "returns parsed result" do
+          yaml_def = <<~EOS
+            id: test
+            station: TEST
+            area: JP13
+            title: test title
+            author: test author
+            image: https://radicaster.test/example.png
+            program_schedule: Tue 01:00:00
+            execution_schedule: Tue 03:03:00
+          EOS
+          def_ = Definition.parse(yaml_def)
+
+          expect(def_).to eq(Definition.new(
+            id: "test",
+            area: "JP13",
+            station: "TEST",
+            title: "test title",
+            author: "test author",
+            image: "https://radicaster.test/example.png",
+            program_schedule: [
+              ["Tue 01:00:00"],
+            ],
+            execution_schedule: [
+              ExecutionSchedule.new("Tue", 3, 3),
+            ],
+          ))
+        end
       end
     end
 
@@ -38,30 +75,143 @@ module Radicaster::CLI
       subject(:def_) {
         Definition.new(
           id: "test",
+          area: "JP13",
+          station: "TEST",
           title: "test title",
           author: "test author",
           image: "http://radicaster.test/example.png",
-          program_starts: [
-            Schedule.new(wday: "Tue", hour: 1, min: 0),
-            Schedule.new(wday: "Tue", hour: 2, min: 0),
+          program_schedule: [
+            "Tue 01:00:00",
+            "Tue 02:00:00",
           ],
-          rec_start: Schedule.new(wday: "Tue", hour: 3, min: 3),
-          station: "TBS",
-          area: "JP13",
+          execution_schedule: [ExecutionSchedule.new("Tue", 3, 3)],
         )
       }
 
       it "returns expected yaml string" do
         expect(YAML.load(def_.to_yaml)).to eq({
           "id" => "test",
+          "area" => "JP13",
+          "station" => "TEST",
           "title" => "test title",
           "author" => "test author",
           "image" => "http://radicaster.test/example.png",
-          "program_starts" => ["Tue 01:00:00", "Tue 02:00:00"],
-          "rec_start" => "Tue 03:03:00",
-          "station" => "TBS",
-          "area" => "JP13",
+          "program_schedule" => ["Tue 01:00:00", "Tue 02:00:00"],
+          "execution_schedule" => ["Tue 03:03:00"],
         })
+      end
+    end
+
+    describe "#==" do
+      let(:this) {
+        Definition.new(
+          id: "test",
+          title: "test title",
+          area: "JP13",
+          station: "TEST",
+          author: "test author",
+          image: "http://radicaster.test/example.png",
+          program_schedule: [["Tue 01:00:00", "Tue 02:00:00"]],
+          execution_schedule: [ExecutionSchedule.new("Tue", 3, 3)],
+        )
+      }
+      where(:other, :expected) do
+        [
+          [Definition.new(
+            id: "test",
+            title: "test title",
+            area: "JP13",
+            station: "TEST",
+            author: "test author",
+            image: "http://radicaster.test/example.png",
+            program_schedule: [["Tue 01:00:00", "Tue 02:00:00"]],
+            execution_schedule: [ExecutionSchedule.new("Tue", 3, 3)],
+          ), true],
+          [Definition.new(
+            id: "xtest",
+            title: "test title",
+            area: "JP13",
+            station: "TEST",
+            author: "test author",
+            image: "http://radicaster.test/example.png",
+            program_schedule: [["Tue 01:00:00", "Tue 02:00:00"]],
+            execution_schedule: [ExecutionSchedule.new("Tue", 3, 3)],
+          ), false],
+          [Definition.new(
+            id: "test",
+            title: "xtest title",
+            area: "JP13",
+            station: "TEST",
+            author: "test author",
+            image: "http://radicaster.test/example.png",
+            program_schedule: [["Tue 01:00:00", "Tue 02:00:00"]],
+            execution_schedule: [ExecutionSchedule.new("Tue", 3, 3)],
+          ), false],
+          [Definition.new(
+            id: "test",
+            title: "test title",
+            area: "JP12",
+            station: "TEST",
+            author: "test author",
+            image: "http://radicaster.test/example.png",
+            program_schedule: [["Tue 01:00:00", "Tue 02:00:00"]],
+            execution_schedule: [ExecutionSchedule.new("Tue", 3, 3)],
+          ), false],
+          [Definition.new(
+            id: "test",
+            title: "test title",
+            area: "JP13",
+            station: "TESTX",
+            author: "test author",
+            image: "http://radicaster.test/example.png",
+            program_schedule: [["Tue 01:00:00", "Tue 02:00:00"]],
+            execution_schedule: [ExecutionSchedule.new("Tue", 3, 3)],
+          ), false],
+          [Definition.new(
+            id: "test",
+            title: "test title",
+            area: "JP13",
+            station: "TEST",
+            author: "xtest author",
+            image: "http://radicaster.test/example.png",
+            program_schedule: [["Tue 01:00:00", "Tue 02:00:00"]],
+            execution_schedule: [ExecutionSchedule.new("Tue", 3, 3)],
+          ), false],
+          [Definition.new(
+            id: "test",
+            title: "test title",
+            area: "JP13",
+            station: "TEST",
+            author: "test author",
+            image: "http://radicaster.test/example.x.png",
+            program_schedule: [["Tue 01:00:00", "Tue 02:00:00"]],
+            execution_schedule: [ExecutionSchedule.new("Tue", 3, 3)],
+          ), false],
+          [Definition.new(
+            id: "test",
+            title: "test title",
+            area: "JP13",
+            station: "TEST",
+            author: "test author",
+            image: "http://radicaster.test/example.png",
+            program_schedule: [["Tue 01:00:00", "Tue 02:00:01"]],
+            execution_schedule: [ExecutionSchedule.new("Tue", 3, 3)],
+          ), false],
+          [Definition.new(
+            id: "test",
+            title: "test title",
+            area: "JP13",
+            station: "TEST",
+            author: "test author",
+            image: "http://radicaster.test/example.png",
+            program_schedule: [["Tue 01:00:00", "Tue 02:00:00"]],
+            execution_schedule: [ExecutionSchedule.new("Tue", 3, 4)],
+          ), false],
+        ]
+      end
+      subject { this == other }
+      with_them do
+        it { is_expected.to eq(expected) }
       end
     end
   end
