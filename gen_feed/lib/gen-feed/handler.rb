@@ -26,7 +26,6 @@ module Radicaster
 
       def handle(event:, context:)
         logger.info("Start event handling.")
-        validate(event)
         cmd = build_cmd(event)
         exec(cmd)
         logger.info("Event handling finished.")
@@ -36,16 +35,14 @@ module Radicaster
 
       attr_reader :logger, :region, :bucket, :storage, :generator
 
-      def validate(event)
+      def build_cmd(event)
         raise '"s3" is not contained in the event' unless event["Records"][0]["s3"]
         region = event["Records"][0]["awsRegion"]
         bucket = event["Records"][0]["s3"]["bucket"]["name"]
 
         raise "unexpected region" if region != self.region
         raise "unexpected bucket" if bucket != self.bucket
-      end
 
-      def build_cmd(event)
         key = event["Records"][0]["s3"]["object"]["key"]
         logger.debug(key)
         id = Pathname.new(key).dirname.to_s

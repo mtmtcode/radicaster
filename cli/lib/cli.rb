@@ -4,8 +4,8 @@ require "aws-sdk-s3"
 require "aws-sdk-eventbridge"
 
 require "cli/handler"
-require "cli/schedule"
 require "cli/definition"
+require "cli/execution_schedule"
 require "cli/s3"
 require "cli/eventbridge"
 

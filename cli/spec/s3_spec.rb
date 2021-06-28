@@ -9,12 +9,11 @@ module Radicaster::CLI
           title: "test title",
           author: "test author",
           image: "http://radicaster.test/example.png",
-          program_starts: [
-            Schedule.new(wday: "Tue", hour: 1, min: 0),
-            Schedule.new(wday: "Tue", hour: 2, min: 0),
+          program_schedule: [
+            ["Tue 01:00:00", "Tue 02:00:00"],
           ],
-          rec_start: Schedule.new(wday: "Tue", hour: 3, min: 3),
-          station: "TBS",
+          execution_schedule: ExecutionSchedule.new("Tue", 3, 3),
+          station: "TEST",
           area: "JP13",
         )
       }

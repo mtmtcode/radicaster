@@ -24,9 +24,11 @@ module Radicaster
       end
 
       def exec(def_path)
-        def_ = Definition.load(def_path)
-        storage.save_definition(def_)
-        scheduler.register(def_)
+        open(def_path) do |f|
+          def_ = Definition.parse(f.read)
+          storage.save_definition(def_)
+          scheduler.register(def_)
+        end
       end
 
       private
