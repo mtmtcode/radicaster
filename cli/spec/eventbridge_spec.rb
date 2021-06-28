@@ -7,19 +7,24 @@ module Radicaster::CLI
           title: "test title",
           author: "test author",
           image: "https://radicaster.test/exmaple.png",
-          program_starts: program_starts,
-          rec_start: rec_start,
+          program_schedule: program_schedule,
+          execution_schedule: execution_schedule,
           station: "TBS",
           area: "JP13",
         )
       }
-      let(:program_starts) {
+      let(:program_schedule) {
         [
-          Schedule.new(wday: "Tue", hour: 1, min: 0),
-          Schedule.new(wday: "Tue", hour: 2, min: 0),
+          ["Mon 08:30:00"],
+          ["Tue 08:30:00"],
         ]
       }
-      let(:rec_start) { Schedule.new(wday: "Tue", hour: 3, min: 3) }
+      let(:execution_schedule) {
+        [
+          ExecutionSchedule.new("Mon", 12, 0),
+          ExecutionSchedule.new("Tue", 12, 0),
+        ]
+      }
 
       let(:func_arn_map) { { "rec-radiko" => "arn:aws:lambda:dummy" } }
       let(:client) { instance_double(Aws::EventBridge::Client) }
@@ -27,15 +32,27 @@ module Radicaster::CLI
 
       it "registers recording schedule to AWS EventBrdige" do
         expect(client).to receive(:put_rule).with(
-          name: "test",
-          schedule_expression: "cron(3 18 ? * Mon *)",
+          name: "test_0",
+          schedule_expression: "cron(0 3 ? * Mon *)",
         )
         expect(client).to receive(:put_targets).with(
-          rule: "test",
+          rule: "test_0",
           targets: [{
             id: "rec-radiko",
             arn: "arn:aws:lambda:dummy",
-            input: %q/{"id":"test","area":"JP13","station":"TBS","starts":["Tue 01:00:00","Tue 02:00:00"]}/,
+            input: %q/{"id":"test"}/,
+          }],
+        )
+        expect(client).to receive(:put_rule).with(
+          name: "test_1",
+          schedule_expression: "cron(0 3 ? * Tue *)",
+        )
+        expect(client).to receive(:put_targets).with(
+          rule: "test_1",
+          targets: [{
+            id: "rec-radiko",
+            arn: "arn:aws:lambda:dummy",
+            input: %q/{"id":"test"}/,
           }],
         )
         eb.register(def_)

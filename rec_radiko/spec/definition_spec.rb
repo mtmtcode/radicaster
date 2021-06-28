@@ -14,7 +14,7 @@ module Radicaster::RecRadiko
               area: JP13
               station: TEST
               program_schedule: Tue 01:00:00
-              rec_start: Tue 03:03:00
+              execution_schedule: Tue 03:03:00
             EOS
           end
           it {
@@ -39,7 +39,7 @@ module Radicaster::RecRadiko
               program_schedule:
               - Mon 08:30:00
               - Tue 08:30:00
-              rec_start: Tue 03:03:00
+              execution_schedule: Tue 03:03:00
             EOS
           end
           it {
@@ -66,7 +66,7 @@ module Radicaster::RecRadiko
               station: TEST
               program_schedule:
               - ["Mon 08:30:00", "Mon 10:00:00"]
-              rec_start: Tue 03:03:00
+              execution_schedule: Tue 03:03:00
             EOS
           end
           it {
