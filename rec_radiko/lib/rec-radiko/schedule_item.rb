@@ -7,13 +7,13 @@ module Radicaster
       TIMEZONE_JP = "+09:00"
 
       def self.parse(s)
-        m = s.chomp.downcase.match(/\A(sun|mon|tue|wed|thu|fri|sat) ([0-2]?[0-9]):([0-5]?[0-9]):([0-5]?[0-9])\z/)
+        m = s.chomp.downcase.match(/\A(sun|mon|tue|wed|thu|fri|sat) ([0-2]?[0-9]):([0-5]?[0-9])(:([0-5]?[0-9]))?\z/)
         raise ArgumentError, "invalid format" unless m
 
         wday = m[1]
         hour = m[2].to_i
         min = m[3].to_i
-        sec = m[4].to_i
+        sec = m[5] ? m[5].to_i : 0
         self.new(wday, hour, min, sec)
       end
 

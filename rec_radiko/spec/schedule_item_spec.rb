@@ -18,6 +18,11 @@ module Radicaster::RecRadiko
         end
       end
 
+      context "second can be omited" do
+        let(:input) { "Tue 1:2" }
+        it { is_expected.to eq(ScheduleItem.new("Tue", 1, 2, 0)) }
+      end
+
       context "invalid format" do
         where(:input) do
           [
