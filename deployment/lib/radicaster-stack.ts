@@ -6,7 +6,7 @@ import { Code, DockerImageCode, DockerImageFunction, Runtime } from '@aws-cdk/aw
 import { S3EventSource } from '@aws-cdk/aws-lambda-event-sources';
 import { Bucket, EventType } from '@aws-cdk/aws-s3';
 import * as cdk from '@aws-cdk/core';
-import { Duration } from '@aws-cdk/core';
+import { CfnOutput, Duration } from '@aws-cdk/core';
 import { readFileSync } from 'fs';
 import * as path from 'path';
 
@@ -77,6 +77,12 @@ export class RadicasterStack extends cdk.Stack {
     }
     bucket.grantRead(funcRecRadiko.role);
     bucket.grantPut(funcRecRadiko.role);
+
+    new CfnOutput(this, `RecRadikoARN`, {
+      value: funcRecRadiko.functionArn,
+      description: 'ARN of rec-radiko function'
+    });
+
     return funcRecRadiko;
   }
 
@@ -160,6 +166,13 @@ export class RadicasterStack extends cdk.Stack {
         })
       },
     });
+
+    const domainName = domainNames ? domainNames[0] : dist.domainName
+    new CfnOutput(this, `domainName`, {
+      value: `https://${domainName}`,
+      description: 'Root URL of Podcast feeds.'
+    })
+
     return dist;
   }
 
