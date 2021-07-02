@@ -25,7 +25,7 @@ radicasterはAWSの各種マネージサービスを活用し、radikoのお好�
 - S3
 - CloudFront
 
-## デプロイ方法(WIP)
+## デプロイ方法
 
 ### 事前準備
 
