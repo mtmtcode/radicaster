@@ -33,6 +33,8 @@ radicasterはAWSの各種マネージドサービスを活用し、radikoのお�
 
 - Docker
 - Git LFS
+- Node.js >= 10.13.0
+    - 13.0.0 〜 13.6.0 はCDKが動かないのでそれ以外のバージョンを使用してください
 
 #### リポジトリのclone
 
