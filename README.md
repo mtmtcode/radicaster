@@ -29,6 +29,11 @@ radicasterはAWSの各種マネージドサービスを活用し、radikoのお�
 
 ### 事前準備
 
+#### 必要なもの
+
+- Docker
+- Git LFS
+
 #### リポジトリのclone
 
 ```bash
