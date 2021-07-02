@@ -18,11 +18,8 @@ module Radicaster
       storage = S3.new(s3_client, bucket)
 
       rec_radiko_arn = ENV["RADICASTER_REC_RADIKO_ARN"] or raise "ENV['RADICASTER_REC_RADIKO_ARN'] must be set"
-      func_arn_map = {
-        EventBridge::TARGET_ID_RADIKO => rec_radiko_arn,
-      }
       eb_client = Aws::EventBridge::Client.new(region: region)
-      scheduler = EventBridge.new(eb_client, func_arn_map)
+      scheduler = EventBridge.new(eb_client, rec_radiko_arn)
 
       h = Handler.new(storage, scheduler)
       h.handle(argv)

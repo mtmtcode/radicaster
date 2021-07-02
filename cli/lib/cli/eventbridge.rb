@@ -5,9 +5,9 @@ module Radicaster
     class EventBridge
       TARGET_ID_RADIKO = "rec-radiko"
 
-      def initialize(client, func_arn_map)
+      def initialize(client, rec_radiko_arn)
         @client = client
-        @func_arn_map = func_arn_map
+        @rec_radiko_arn = rec_radiko_arn
       end
 
       def register(def_)
@@ -22,7 +22,7 @@ module Radicaster
             rule: name,
             targets: [{
               id: TARGET_ID_RADIKO,
-              arn: func_arn_map[TARGET_ID_RADIKO],
+              arn: rec_radiko_arn,
               input: JSON.generate({ id: def_.id }),
             }],
           )
@@ -31,7 +31,7 @@ module Radicaster
 
       private
 
-      attr_reader :client, :func_arn_map
+      attr_reader :client, :rec_radiko_arn
     end
   end
 end
