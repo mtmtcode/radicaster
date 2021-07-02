@@ -121,12 +121,40 @@ bundle install
 id: example                                       # 番組ID: 番組を一意に識別する文字列で、AWSの各種リソースの命名やURLなどに使用されます
 title: テスト番組                                   # 番組名: 生成されるPodcastフィードの番組名に使用されます
 author: テスト太郎                                  # 作者: 生成されるPodcastの作者フィールドに使用されます
-image: http://www.tbsradio.jp/ijuin/300_300.jpg   # 画像: Podcastの番組サムネイルに使用する画像のURLを指定します
+image: http://example.com/cover.png               # 画像: Podcastの番組サムネイルに使用する画像のURLを指定します
 area: JP13                                        # エリアID: 録音対象のradikoのエリアIDを指定します。デプロイ時にradikoプレミアムの認証情報を指定しない場合はJP13のみ指定できます。
-station: TBS                                      # 放送局: 録音対象の放送局を指定します
-program_schedule: Tue 01:00:00                    # 番組開始日時: 録音対象番組の放送開始曜日と時間を指定します
-execution_schedule: Tue 03:03:00                  # 録音開始日時: 録音を実行する曜日と日時を指定します
+station: TEST                                     # 放送局: 録音対象の放送局を指定します
+program_schedule: Tue 01:00:00                    # 番組開始日時: 録音対象番組の放送開始曜日と時間を日本時間で指定します
+execution_schedule: Tue 03:03:00                  # 録音開始日時: 録音処理を実行する曜日と日時を日本時間で指定します。録音処理は番組の放送が終了してから実行してください。
 ```
+
+#### Tips: 番組の連結、複数曜日の指定
+
+定義ファイルの `program_schedule` と `execution_schedule` を配列にすることで複数曜日に放送される番組の録音ができます。さらに二次元配列にすることで、放送時間が長く分割された番組を1エピソードとして連結することができます。
+
+例. 月〜木曜の 8:30-10:00, 10:00-11:00 に分割された番組を録音予約する例
+
+```yaml
+id: example
+title: テスト番組
+author: テスト太郎
+image: http://example.com/cover.png
+area: JP13
+station: TEST
+program_schedule:
+- ["Mon 08:30:00", "Mon 10:00:00"]
+- ["Tue 08:30:00", "Tue 10:00:00"]
+- ["Wed 08:30:00", "Wed 10:00:00"]
+- ["Thu 08:30:00", "Thu 10:00:00"]
+execution_schedule:
+- Mon 12:00:00
+- Tue 12:00:00
+- Wed 12:00:00
+- Thu 12:00:00
+```
+
+録音処理では直近の1エピソードのみを対象として録音を行います。例えば火曜12:00に起動する処理で録音されるのは `["Tue 08:30:00", "Tue 10:00:00"]` のエピソードのみです。したがって、複数曜日の番組を録音する場合は上記の例のように `execution_schedule` も各曜日分指定してください。
+
 
 ### 録音を予約する
 
