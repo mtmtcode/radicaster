@@ -75,6 +75,7 @@ export class RadicasterStack extends cdk.Stack {
     if (!funcRecRadiko.role) {
       throw new Error("funcRecRadiko.role is undefined");
     }
+    bucket.grantRead(funcRecRadiko.role);
     bucket.grantPut(funcRecRadiko.role);
     return funcRecRadiko;
   }
@@ -98,8 +99,8 @@ export class RadicasterStack extends cdk.Stack {
     if (!funcGenFeed.role) {
       throw new Error("funcGenFeed.role is undefined");
     }
-    bucket.grantPut(funcGenFeed.role);
     bucket.grantRead(funcGenFeed.role);
+    bucket.grantPut(funcGenFeed.role);
 
     funcGenFeed.addEventSource(new S3EventSource(
       bucket,

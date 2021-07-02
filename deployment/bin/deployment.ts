@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from '@aws-cdk/core';
-import { RadicasterStack } from '../lib/deployment-stack';
+import { RadicasterStack } from '../lib/radicaster-stack';
 
 const suffix = process.env.RADICASTER_CDK_SUFFIX || '';
 
