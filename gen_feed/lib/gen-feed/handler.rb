@@ -16,10 +16,8 @@ module Radicaster
 
     # CloudWatchのイベントをハンドルしてPodcastフィードを生成する
     class Handler
-      def initialize(logger, region, bucket, storage, generator)
+      def initialize(logger, storage, generator)
         @logger = logger
-        @region = region
-        @bucket = bucket
         @storage = storage
         @generator = generator
       end
@@ -33,16 +31,10 @@ module Radicaster
 
       private
 
-      attr_reader :logger, :region, :bucket, :storage, :generator
+      attr_reader :logger, :storage, :generator
 
       def build_cmd(event)
         raise '"s3" is not contained in the event' unless event["Records"][0]["s3"]
-        region = event["Records"][0]["awsRegion"]
-        bucket = event["Records"][0]["s3"]["bucket"]["name"]
-
-        raise "unexpected region" if region != self.region
-        raise "unexpected bucket" if bucket != self.bucket
-
         key = event["Records"][0]["s3"]["object"]["key"]
         logger.debug(key)
         id = Pathname.new(key).dirname.to_s

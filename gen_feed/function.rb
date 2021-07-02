@@ -14,4 +14,4 @@ storage = Radicaster::GenFeed::S3.new(s3_client, bucket, url)
 
 generator = Radicaster::GenFeed::FeedGenerator.new
 
-Handler = Radicaster::GenFeed::Handler.new(logger, region, bucket, storage, generator)
+Handler = Radicaster::GenFeed::Handler.new(logger, storage, generator)
