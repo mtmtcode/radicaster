@@ -25,11 +25,81 @@ radicasterはAWSの各種マネージサービスを活用し、radikoのお好�
 - S3
 - CloudFront
 
-## デプロイ
+## デプロイ方法(WIP)
 
-TODO
+### 事前準備
 
-## 利用方法
+#### リポジトリのclone
+
+```bash
+git@github.com:l3msh0/radicaster.git
+```
+
+#### AWSプロファイルの準備
+
+デプロイに使用するAWSアカウントやリージョンは、 `AWS_ACCESS_KEY_ID` や `AWS_REGION` などの環境変数でも指定できますがプロファイルを使用することを推奨します。
+
+プロファイルの設定を行い、後続の作業は環境変数 `AWS_PROFILE` にプロファイル名をセットした上で実行してください。
+
+#### AWS CDKのインストール
+
+デプロイにはAWS CDKを使用します。以下のコマンドを実行しでCDKをインストールしてください。
+
+```bash
+npm install -g aws-cdk
+```
+
+AWS CDKについての詳細は[AWSのドキュメント](https://docs.aws.amazon.com/cdk/latest/guide/getting_started.html)を参照してください。
+
+#### CDK bootstrap
+
+CDKによるデプロイを行うにあたって、事前にbootstrapという作業が必要となります。
+以下のコマンドを実行してbootstrapを行ってください。
+
+```bash
+cdk bootstrap aws://<AWSのアカウントID>/us-east-1 aws://<AWSのアカウントID>/ap-northeast-1
+```
+
+参考
+- [Bootstrapping - AWS Cloud Development Kit (CDK)](https://docs.aws.amazon.com/cdk/latest/guide/bootstrapping.html)
+
+### 環境変数の準備
+
+cloneしたリポジトリ直下にある `.env.example` ファイルをコピーし、コメントに従って必要な値を入力します。
+
+```bash
+cp .env.example .env
+vim .env
+```
+
+一通り入力ができたら、sourceコマンドでファイルに記載された環境変数を現在のシェルにセットします。
+
+```bash
+source .env
+```
+
+### CDK実行
+
+CDKを実行し、AWS上にradicasterが使用するリソースを作成します。
+
+```bash
+export AWS_PROFILE=AWSプロファイル名
+cd deployment
+cdk deploy --all
+```
+
+### 環境変数の更新
+
+CDKを実行すると実行結果のOutputsが出力されます。その中から `RadicasterStack.RecRadikoARN` の値をコピーし、.envの `RADICASTER_REC_RADIKO_ARN` の値にセットしてください。
+
+CDK実行結果の例
+```
+Outputs:
+RadicasterStack.RecRadikoARN = arn:aws:lambda:ap-northeast-1:xxxxxxxxxxxx:function:radicaster-rec-radiko
+RadicasterStack.domainName = https://xxxxxxxxxxxxxx.cloudfront.net
+```
+
+## 録音方法
 
 ### 定義ファイルを作成する
 
