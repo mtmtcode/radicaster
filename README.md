@@ -7,7 +7,8 @@ radicasterはAWSの各種マネージサービスを活用し、radikoのお好�
 
 ## 特徴
 
-- マネージドサービスを活用したアーキテクチャにより低コストで運用可能
+- FaaSを活用したアーキテクチャにより低コストで運用可能
+    - 普通の使い方であればストレージ以外はほぼ無料
 - AWS CDKによる簡単なデプロイ
 - 分割された番組の結合に対応
 - HTTPS+Basic認証によるフィードの保護
@@ -23,12 +24,6 @@ radicasterはAWSの各種マネージサービスを活用し、radikoのお好�
 - EventBridge
 - S3
 - CloudFront
-
-## TODO
-
-- 環境固有の情報をCDKのcontextで受け取る
-- 利用方法のドキュメント書く
-- GitHub ActionsでCI
 
 ## デプロイ
 
