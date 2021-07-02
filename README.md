@@ -106,6 +106,13 @@ RadicasterStack.domainName = https://xxxxxxxxxxxxxx.cloudfront.net
 
 radicasterでは、録音したい番組の情報を定義しCLIで処理することで、AWS EventBridgeに録音用Lambdaの実行をスケジュールします。
 
+### 依存パッケージのインストール
+
+```
+cd cli
+bundle install
+```
+
 ### 定義ファイルを作成する
 
 以下のフォーマットで、Podcast化したい番組の情報を記述します。
