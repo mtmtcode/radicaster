@@ -3,7 +3,7 @@
 
 # radicaster
 
-radicasterはAWSの各種マネージサービスを活用し、radikoのお好きな番組を録音・Podcast化するアプリケーションです。
+radicasterはAWSの各種マネージドサービスを活用し、radikoのお好きな番組を録音・Podcast化するアプリケーションです。
 
 ## 特徴
 
@@ -37,13 +37,13 @@ git@github.com:l3msh0/radicaster.git
 
 #### AWSプロファイルの準備
 
-デプロイに使用するAWSアカウントやリージョンは、 `AWS_ACCESS_KEY_ID` や `AWS_REGION` などの環境変数でも指定できますがプロファイルを使用することを推奨します。
+デプロイに使用するAWSアカウントやリージョンは `AWS_ACCESS_KEY_ID` や `AWS_REGION` などの環境変数でも指定できますが、プロファイルを使用することを推奨します。
 
 プロファイルの設定を行い、後続の作業は環境変数 `AWS_PROFILE` にプロファイル名をセットした上で実行してください。
 
 #### AWS CDKのインストール
 
-デプロイにはAWS CDKを使用します。以下のコマンドを実行しでCDKをインストールしてください。
+デプロイにはAWS CDKを使用します。以下のコマンドを実行してCDKをインストールしてください。
 
 ```bash
 npm install -g aws-cdk
@@ -54,7 +54,7 @@ AWS CDKについての詳細は[AWSのドキュメント](https://docs.aws.amazo
 #### CDK bootstrap
 
 CDKによるデプロイを行うにあたって、事前にbootstrapという作業が必要となります。
-以下のコマンドを実行してbootstrapを行ってください。Basic認証のためにLambda@Edgeを使用すつ都合でus-east-1リージョンもbootstrapが必要です。
+以下のコマンドを実行してbootstrapを行ってください。Basic認証のためにLambda@Edgeを使用する都合でus-east-1リージョンもbootstrapが必要です。
 
 ```bash
 cdk bootstrap aws://<AWSのアカウントID>/us-east-1 aws://<AWSのアカウントID>/ap-northeast-1
@@ -66,7 +66,7 @@ cdk bootstrap aws://<AWSのアカウントID>/us-east-1 aws://<AWSのアカウ�
 ### 環境変数の準備
 
 cloneしたリポジトリ直下にある `.env.example` ファイルをコピーし、コメントに従って必要な値を入力します。
-`RADICASTER_REC_RADIKO_ARN` については、CDKを実行してリソースを作成されないと記入できないためこの時点では無視してください。
+`RADICASTER_REC_RADIKO_ARN` については、CDKを実行してリソースが作成されないと記入できないためこの時点では無視してください。
 
 ```bash
 cp .env.example .env
