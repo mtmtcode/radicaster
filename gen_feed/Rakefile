@@ -1,0 +1,25 @@
+task :run => :build do
+  sh <<~EOS
+       docker run \
+       -it \
+       --rm \
+       --platform=linux/amd64 \
+       -p 9001:8080 \
+       -e AWS_REGION \
+       -e RADICASTER_S3_BUCKET \
+       -e RADICASTER_BUCKET_URL \
+       -e AWS_ACCESS_KEY_ID \
+       -e AWS_SECRET_ACCESS_KEY \
+       radicaster/gen-feed:latest
+     EOS
+end
+
+task :build do
+  sh "docker build --platform linux/amd64 -t radicaster/gen-feed ."
+end
+
+task :push => :build do
+  sh "aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin 164278227419.dkr.ecr.ap-northeast-1.amazonaws.com"
+  sh "docker tag radicaster/gen-feed:latest 164278227419.dkr.ecr.ap-northeast-1.amazonaws.com/radicaster/gen-feed:latest"
+  sh "docker push 164278227419.dkr.ecr.ap-northeast-1.amazonaws.com/radicaster/gen-feed:latest"
+end

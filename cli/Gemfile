@@ -1,0 +1,18 @@
+# frozen_string_literal: true
+
+source "https://rubygems.org"
+
+git_source(:github) { |repo_name| "https://github.com/#{repo_name}" }
+
+ruby "~> 2.7.0"
+
+gem "aws-sdk-s3"
+gem "aws-sdk-eventbridge"
+
+group :development, :test do
+  gem "rspec", "~> 3.0"
+  gem "rspec-its"
+  gem "rspec-parameterized"
+  gem "rspec-mocks"
+  gem "guard-rspec", require: false
+end
