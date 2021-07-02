@@ -12,13 +12,12 @@ require "cli/eventbridge"
 module Radicaster
   module CLI
     def main(argv)
-      region = ENV["AWS_REGION"] or raise "ENV['AWS_REGION'] must be set"
       bucket = ENV["RADICASTER_S3_BUCKET"] or raise "ENV['RADICASTER_S3_BUCKET'] must be set"
-      s3_client = Aws::S3::Client.new(region: region)
+      s3_client = Aws::S3::Client.new
       storage = S3.new(s3_client, bucket)
 
       rec_radiko_arn = ENV["RADICASTER_REC_RADIKO_ARN"] or raise "ENV['RADICASTER_REC_RADIKO_ARN'] must be set"
-      eb_client = Aws::EventBridge::Client.new(region: region)
+      eb_client = Aws::EventBridge::Client.new
       scheduler = EventBridge.new(eb_client, rec_radiko_arn)
 
       h = Handler.new(storage, scheduler)
