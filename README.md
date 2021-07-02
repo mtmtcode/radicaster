@@ -25,7 +25,7 @@ radicasterはAWSの各種マネージサービスを活用し、radikoのお好�
 - S3
 - CloudFront
 
-## デプロイ方法(WIP)
+## デプロイ方法
 
 ### 事前準備
 
@@ -105,6 +105,13 @@ RadicasterStack.domainName = https://xxxxxxxxxxxxxx.cloudfront.net
 ## 録音方法
 
 radicasterでは、録音したい番組の情報を定義しCLIで処理することで、AWS EventBridgeに録音用Lambdaの実行をスケジュールします。
+
+### 依存パッケージのインストール
+
+```
+cd cli
+bundle install
+```
 
 ### 定義ファイルを作成する
 
