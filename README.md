@@ -3,7 +3,7 @@
 
 # radicaster
 
-radicasterはAWSの各種マネージサービスを活用し、radikoのお好きな番組を録音・Podcast化するアプリケーションです。
+radicasterはAWSの各種マネージドサービスを活用し、radikoのお好きな番組を録音・Podcast化するアプリケーションです。
 
 ## 特徴
 
@@ -29,6 +29,12 @@ radicasterはAWSの各種マネージサービスを活用し、radikoのお好�
 
 ### 事前準備
 
+#### 必要なもの
+
+- Docker
+- Node.js >= 10.13.0
+    - 13.0.0 〜 13.6.0 はCDKが動かないのでそれ以外のバージョンを使用してください
+
 #### リポジトリのclone
 
 ```bash
@@ -37,13 +43,13 @@ git@github.com:l3msh0/radicaster.git
 
 #### AWSプロファイルの準備
 
-デプロイに使用するAWSアカウントやリージョンは、 `AWS_ACCESS_KEY_ID` や `AWS_REGION` などの環境変数でも指定できますがプロファイルを使用することを推奨します。
+デプロイに使用するAWSアカウントやリージョンは `AWS_ACCESS_KEY_ID` や `AWS_REGION` などの環境変数でも指定できますが、プロファイルを使用することを推奨します。
 
 プロファイルの設定を行い、後続の作業は環境変数 `AWS_PROFILE` にプロファイル名をセットした上で実行してください。
 
 #### AWS CDKのインストール
 
-デプロイにはAWS CDKを使用します。以下のコマンドを実行しでCDKをインストールしてください。
+デプロイにはAWS CDKを使用します。以下のコマンドを実行してCDKをインストールしてください。
 
 ```bash
 npm install -g aws-cdk
@@ -54,7 +60,7 @@ AWS CDKについての詳細は[AWSのドキュメント](https://docs.aws.amazo
 #### CDK bootstrap
 
 CDKによるデプロイを行うにあたって、事前にbootstrapという作業が必要となります。
-以下のコマンドを実行してbootstrapを行ってください。Basic認証のためにLambda@Edgeを使用すつ都合でus-east-1リージョンもbootstrapが必要です。
+以下のコマンドを実行してbootstrapを行ってください。Basic認証のためにLambda@Edgeを使用する都合でus-east-1リージョンもbootstrapが必要です。
 
 ```bash
 cdk bootstrap aws://<AWSのアカウントID>/us-east-1 aws://<AWSのアカウントID>/ap-northeast-1
@@ -66,7 +72,7 @@ cdk bootstrap aws://<AWSのアカウントID>/us-east-1 aws://<AWSのアカウ�
 ### 環境変数の準備
 
 cloneしたリポジトリ直下にある `.env.example` ファイルをコピーし、コメントに従って必要な値を入力します。
-`RADICASTER_REC_RADIKO_ARN` については、CDKを実行してリソースを作成されないと記入できないためこの時点では無視してください。
+`RADICASTER_REC_RADIKO_ARN` については、CDKを実行してリソースが作成されないと記入できないためこの時点では無視してください。
 
 ```bash
 cp .env.example .env
@@ -121,12 +127,42 @@ bundle install
 id: example                                       # 番組ID: 番組を一意に識別する文字列で、AWSの各種リソースの命名やURLなどに使用されます
 title: テスト番組                                   # 番組名: 生成されるPodcastフィードの番組名に使用されます
 author: テスト太郎                                  # 作者: 生成されるPodcastの作者フィールドに使用されます
-image: http://www.tbsradio.jp/ijuin/300_300.jpg   # 画像: Podcastの番組サムネイルに使用する画像のURLを指定します
+image: http://example.com/cover.png               # 画像: Podcastの番組サムネイルに使用する画像のURLを指定します
 area: JP13                                        # エリアID: 録音対象のradikoのエリアIDを指定します。デプロイ時にradikoプレミアムの認証情報を指定しない場合はJP13のみ指定できます。
-station: TBS                                      # 放送局: 録音対象の放送局を指定します
-program_schedule: Tue 01:00:00                    # 番組開始日時: 録音対象番組の放送開始曜日と時間を指定します
-execution_schedule: Tue 03:03:00                  # 録音開始日時: 録音を実行する曜日と日時を指定します
+station: TEST                                     # 放送局: 録音対象の放送局を指定します
+program_schedule: Tue 01:00:00                    # 番組開始日時: 録音対象番組の放送開始曜日と時間を日本時間で指定します
+execution_schedule: Tue 03:03:00                  # 録音開始日時: 録音処理を実行する曜日と日時を日本時間で指定します。録音処理はタイムフリーのAPIを使用して行うため、番組終了後の任意の時間を指定してください。
 ```
+
+#### Tips: 番組の連結、複数曜日の指定
+
+定義ファイルの `program_schedule` と `execution_schedule` を配列にすることで複数曜日に放送される番組の録音ができます。さらに二次元配列にすることで、放送時間が長く分割された番組を1エピソードとして連結することができます。
+
+例. 月〜木曜に放送される 8:30-10:00, 10:00-11:00 に分割された番組を録音予約する例
+
+```yaml
+id: example
+title: テスト番組
+author: テスト太郎
+image: http://example.com/cover.png
+area: JP13
+station: TEST
+program_schedule:
+- ["Mon 08:30:00", "Mon 10:00:00"]
+- ["Tue 08:30:00", "Tue 10:00:00"]
+- ["Wed 08:30:00", "Wed 10:00:00"]
+- ["Thu 08:30:00", "Thu 10:00:00"]
+execution_schedule:
+- Mon 12:00:00
+- Tue 12:00:00
+- Wed 12:00:00
+- Thu 12:00:00
+```
+
+radikoの番組表上は8:30開始の番組と10:00開始の番組は別のものですが、上記のように `["Mon 08:30:00", "Mon 10:00:00"]` と記載することでPodcast上は1つのエピソードとして扱うことができます。
+
+録音処理では直近の1エピソードのみを対象として録音を行います。例えば火曜12:00に起動する処理で録音されるのは `["Tue 08:30:00", "Tue 10:00:00"]` のエピソードのみです。したがって、複数曜日の番組を録音する場合は上記の例のように `execution_schedule` も各曜日分指定してください。
+
 
 ### 録音を予約する
 
@@ -145,7 +181,7 @@ cd cli
 
 ## フィードの購読
 
-初回の録音が完了するとPodcastのフィードが生成され購読できる状態になりますので、お好みのPodcastアプリでフィードを購読してください。（TODO: 初回録音完了前にフィードを購読できる状態にする）
+録音予約を行うと直近の放送分が自動的に録音されPodcastのフィードが生成され購読できる状態になりますので、お好みのPodcastアプリでフィードを購読してください。
 
 フィードのURLは `https://(CDK実行時に表示されたドメイン名)/(定義ファイルに記載したID)/` の形式です。（e.g. https://xxxxxxxxxxxxxx.cloudfront.net/test/)
 
@@ -154,3 +190,14 @@ cd cli
 radicasterは著作権保護のためPodcastフィードをBasic認証で保護します。このため、Podcastアプリでフィードを購読する際は認証情報を指定する必要があります。
 
 認証情報の入力方法はアプリによって異なりますが、認証情報の入力欄がない場合は `https://ユーザ名:パスワード@example.com/` のようにURLに認証情報を含めることで認証付きフィードを購読できることが多いです。（Apple Podcastなど）
+
+#### 認証付きフィードの購読が確認できているアプリ
+
+- iOS
+    - Apple Podcasts
+- Android
+    - Podcast Addict
+
+#### 認証付きフィードの購読ができないと思われるアプリ
+
+- Google Podcasts
