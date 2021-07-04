@@ -8,6 +8,7 @@ ruby "~> 2.7.0"
 
 gem "aws-sdk-s3"
 gem "aws-sdk-eventbridge"
+gem "aws-sdk-lambda"
 
 group :development, :test do
   gem "rspec", "~> 3.0"
