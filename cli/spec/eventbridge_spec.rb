@@ -26,9 +26,9 @@ module Radicaster::CLI
         ]
       }
 
-      let(:func_arn_map) { { "rec-radiko" => "arn:aws:lambda:dummy" } }
+      let(:rec_radiko_arn) { "arn:aws:lambda:dummy" }
       let(:client) { instance_double(Aws::EventBridge::Client) }
-      subject(:eb) { EventBridge.new(client, func_arn_map) }
+      subject(:eb) { EventBridge.new(client, rec_radiko_arn) }
 
       it "registers recording schedule to AWS EventBrdige" do
         expect(client).to receive(:put_rule).with(

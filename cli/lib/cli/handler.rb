@@ -1,9 +1,10 @@
 module Radicaster
   module CLI
     class Handler
-      def initialize(storage, scheduler)
+      def initialize(storage, scheduler, recorder)
         @storage = storage
         @scheduler = scheduler
+        @recorder = recorder
       end
 
       def handle(argv)
@@ -26,14 +27,23 @@ module Radicaster
       def exec(def_path)
         open(def_path) do |f|
           def_ = Definition.parse(f.read)
+
+          puts "Saving the definition to storage..."
           storage.save_definition(def_)
+
+          puts "Registering recording schedule..."
           scheduler.register(def_)
+
+          puts "Recording latest episode..."
+          recorder.record_latest(def_)
+
+          puts "Done!"
         end
       end
 
       private
 
-      attr_reader :storage, :scheduler
+      attr_reader :storage, :scheduler, :recorder
     end
   end
 end
