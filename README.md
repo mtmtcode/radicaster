@@ -197,6 +197,7 @@ radicasterは著作権保護のためPodcastフィードをBasic認証で保護�
 
 - iOS
     - Apple Podcasts
+    - Overcast
 - Android
     - Podcast Addict
 
