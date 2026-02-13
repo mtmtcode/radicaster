@@ -47,6 +47,21 @@ export async function GET() {
           if (str) {
             const parsed = yaml.load(str) as any;
             if (parsed && parsed.id) {
+              // Try to fetch image URL from RSS
+              try {
+                const rssKey = `${parsed.id}/index.rss`;
+                const rssObj = await s3Client.send(new GetObjectCommand({ Bucket: bucketName, Key: rssKey }));
+                const rssStr = await rssObj.Body?.transformToString();
+                if (rssStr) {
+                  // Simple regex to find <itunes:image href="...">
+                  const match = rssStr.match(/<itunes:image href="([^"]+)"/);
+                  if (match && match[1]) {
+                    parsed.imageUrl = match[1];
+                  }
+                }
+              } catch (e) {
+                // Ignore RSS fetch errors (no feed yet, etc)
+              }
               s3Items.set(parsed.id, parsed);
             }
           }
@@ -130,6 +145,7 @@ export async function GET() {
         status,
         title: s3?.title || id,
         station: s3?.station,
+        imageUrl: s3?.imageUrl,
         schedules: s3?.execution_schedule || eb || [],
       });
     }

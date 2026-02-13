@@ -11,6 +11,7 @@ interface Recording {
   schedules: string[];
   title?: string;
   station?: string;
+  imageUrl?: string;
 }
 
 export default function RecordingsList() {
@@ -122,15 +123,25 @@ export default function RecordingsList() {
                   <div className="px-4 py-4 sm:px-6 hover:bg-gray-50 flex items-center justify-between">
                     <div className="flex items-center flex-1 min-w-0">
                       <div className="flex-shrink-0 mr-4">
-                        {recording.status === "healthy" ? (
-                          <CheckCircle className="h-6 w-6 text-green-500" />
-                        ) : recording.status === "s3_only" ? (
-                          <div title="Missing EventBridge Rule">
-                            <AlertTriangle className="h-6 w-6 text-yellow-500" />
-                          </div>
+                        {recording.imageUrl ? (
+                          <img
+                            src={recording.imageUrl}
+                            alt={recording.title || recording.id}
+                            className="h-32 w-32 rounded object-cover"
+                          />
                         ) : (
-                          <div title="Missing S3 Definition">
-                            <AlertTriangle className="h-6 w-6 text-red-500" />
+                          <div className="h-32 w-32 rounded bg-gray-200 flex items-center justify-center">
+                            {recording.status === "healthy" ? (
+                              <CheckCircle className="h-12 w-12 text-green-500" />
+                            ) : recording.status === "s3_only" ? (
+                              <div title="Missing EventBridge Rule">
+                                <AlertTriangle className="h-12 w-12 text-yellow-500" />
+                              </div>
+                            ) : (
+                              <div title="Missing S3 Definition">
+                                <AlertTriangle className="h-12 w-12 text-red-500" />
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

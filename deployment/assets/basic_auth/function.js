@@ -8,6 +8,11 @@ exports.handler = (event, context, callback) => {
         request.uri = request.uri + "index.rss";
     }
 
+    if (request.uri.match(/\.(png|jpg|jpeg)$/i)) {
+        callback(null, request);
+        return;
+    }
+
     if (!headers.authorization) {
         console.log('Authorization header not found.')
         callback(null, {

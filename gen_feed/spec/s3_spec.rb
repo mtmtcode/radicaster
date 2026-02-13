@@ -26,12 +26,42 @@ module Radicaster::GenFeed
                             .with(bucket: bucket, key: key)
                             .and_return(resp)
 
+        # Mock find_image internal logic or list_objects_v2
+        # Return empty list to test fallback to YAML image
+        list_resp = instance_double(Aws::S3::Types::ListObjectsV2Output, contents: [])
+        allow(client).to receive(:list_objects_v2).and_return(list_resp)
+
         def_ = s3.find_definition(id)
 
         expect(def_.title).to eq("dummy-title")
         expect(def_.author).to eq("dummy-author")
         expect(def_.summary).to eq("dummy-summary")
         expect(def_.image).to eq("http://foo.test/bar.png")
+      end
+
+      context "when url contains credentials" do
+        let(:url) { "http://user:pass@radicaster.test" }
+        let(:def_body) do
+          <<~EOS
+            title: dummy-title
+            author: dummy-author
+            summary: dummy-summary
+          EOS
+        end
+
+        it "returns image url without credentials" do
+          key = "radicaster/#{id}.yaml"
+          resp = double("response", body: StringIO.new(def_body))
+          allow(client).to receive(:get_object).and_return(resp)
+
+          # Mock find_image internal logic or list_objects_v2
+          image_obj = instance_double(Aws::S3::Types::Object, key: "radicaster/#{id}.png")
+          list_resp = instance_double(Aws::S3::Types::ListObjectsV2Output, contents: [image_obj])
+          allow(client).to receive(:list_objects_v2).and_return(list_resp)
+
+          def_ = s3.find_definition(id)
+          expect(def_.image).to eq("http://radicaster.test/radicaster/#{id}.png")
+        end
       end
     end
 

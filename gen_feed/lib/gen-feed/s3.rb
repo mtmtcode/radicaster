@@ -5,6 +5,7 @@ module Radicaster
     class S3
       FEED_FILENAME = "index.rss"
       DEFINITION_FILENAME = "radicaster.yaml"
+      # public access to images are allowed in CloudFront Function
       EPISODE_EXTS = [".m4a"]
 
       def initialize(client, bucket, url)
@@ -18,7 +19,7 @@ module Radicaster
         resp = client.get_object(bucket: bucket, key: key)
         def_hash = YAML.load(resp.body.read)
         
-        image_url = find_image(id)
+        image_url = find_image(id) || def_hash["image"]
 
         Definition.new(
           title: def_hash["title"],
@@ -67,7 +68,13 @@ module Radicaster
         resp.contents.each do |c|
           ext = File.extname(c.key)
           if [".jpg", ".jpeg", ".png"].include?(ext.downcase)
-            return build_public_url(c.key)
+            # We want to remove basic auth credentials from the URL for images.
+            # The URL is set via environment variable RADICASTER_BUCKET_URL and may include credentials.
+            # e.g. https://user:pass@example.com -> https://example.com
+            uri = URI.parse(build_public_url(c.key))
+            uri.user = nil
+            uri.password = nil
+            return uri.to_s
           end
         end
         nil
