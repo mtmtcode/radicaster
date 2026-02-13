@@ -3,3 +3,4 @@ mise.file = ".env"
 
 [tools]
 node = "lts"
+ruby = "2.7"
