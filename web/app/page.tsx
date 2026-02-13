@@ -17,6 +17,25 @@ export default function RecordingsList() {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [triggeringId, setTriggeringId] = useState<string | null>(null);
+
+  const handleTriggerRecording = async (id: string) => {
+    if (confirm(`Are you sure you want to trigger recording for ${id} immediately?`)) {
+      setTriggeringId(id);
+      try {
+        const res = await fetch(`/api/recordings/${id}/trigger`, { method: "POST" });
+        if (!res.ok) {
+          const json = await res.json();
+          throw new Error(json.error || "Failed to trigger");
+        }
+        alert(`Recording triggered for ${id}!`);
+      } catch (err: any) {
+        alert(`Error: ${err.message}`);
+      } finally {
+        setTriggeringId(null);
+      }
+    }
+  };
 
   useEffect(() => {
     async function fetchRecordings() {
@@ -111,6 +130,21 @@ export default function RecordingsList() {
                             {s}
                           </span>
                         ))}
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleTriggerRecording(recording.id);
+                          }}
+                          disabled={triggeringId === recording.id}
+                          className={cn(
+                            "mt-2 text-xs border rounded px-2 py-1 transition-colors",
+                            triggeringId === recording.id
+                              ? "text-gray-400 border-gray-300 cursor-not-allowed"
+                              : "text-indigo-600 hover:text-indigo-900 border-indigo-600 hover:bg-indigo-50"
+                          )}
+                        >
+                          {triggeringId === recording.id ? "Triggering..." : "Record Now"}
+                        </button>
                       </div>
                     </div>
                   </div>
