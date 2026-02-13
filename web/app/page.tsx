@@ -1,21 +1,24 @@
 "use client";
 
-import { useFieldArray, useForm, Controller } from "react-hook-form";
+import { useFieldArray, useForm, Controller, useWatch, Control, FieldErrors, UseFormRegister } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Plus, Trash2 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { useState } from "react";
-import { ExecutionSchedulePicker } from "./components/ExecutionSchedulePicker";
 import { BroadcastSchedulePicker } from "./components/BroadcastSchedulePicker";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const scheduleSchema = z.string().regex(/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s*([0-5]?[0-9]):([0-5]?[0-9])(?::([0-5]?[0-9]))?$/i, {
-  message: "Format must be 'Day HH:MM' (e.g., 'Mon 21:00')",
+// Internal schema for the form
+const scheduleItemSchema = z.object({
+  startDay: z.string(),
+  startHour: z.string(),
+  startMinute: z.string(),
+  offsetMinutes: z.number().min(1, "Offset must be at least 1 minute").default(125),
 });
 
 const formSchema = z.object({
@@ -25,18 +28,42 @@ const formSchema = z.object({
   image: z.string().url("Must be a valid URL").or(z.literal("")),
   area: z.string().min(1, "Area ID is required"),
   station: z.string().min(1, "Station ID is required"),
-  program_schedule: z.array(z.string().min(1, "Schedule cannot be empty")),
-  execution_schedule: z.array(scheduleSchema),
+  schedules: z.array(scheduleItemSchema).min(1, "At least one schedule is required"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+// Helper to calculate execution time
+function calculateExecutionTime(day: string, hour: string, minute: string, offset: number) {
+  const dayIndex = DAYS.indexOf(day);
+  if (dayIndex === -1) return "Invalid Day";
+
+  const totalCurrentMinutes = parseInt(hour || "0") * 60 + parseInt(minute || "0");
+  const totalMinutesVal = totalCurrentMinutes + (offset || 0);
+  let totalMinutes = totalMinutesVal;
+  let newDayIndex = dayIndex;
+
+  // Handle day rollover
+  while (totalMinutes >= 24 * 60) {
+    totalMinutes -= 24 * 60;
+    newDayIndex = (newDayIndex + 1) % 7;
+  }
+
+  const newHour = Math.floor(totalMinutes / 60).toString().padStart(2, "0");
+  const newMinute = (totalMinutes % 60).toString().padStart(2, "0");
+  const newDay = DAYS[newDayIndex];
+
+  return `${newDay} ${newHour}:${newMinute}`;
+}
 
 export default function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema) as any,
     defaultValues: {
       id: "",
       title: "",
@@ -44,31 +71,33 @@ export default function Home() {
       image: "",
       area: "JP13",
       station: "",
-      program_schedule: [""],
-      execution_schedule: [""],
+      schedules: [{ startDay: "Mon", startHour: "21", startMinute: "00", offsetMinutes: 125 }],
     },
   });
 
   const { register, control, handleSubmit, formState: { errors } } = form;
 
-  const { fields: programFields, append: appendProgram, remove: removeProgram } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control,
-    name: "program_schedule" as never, // Type assertion due to string array limitations in RHF
-  });
-
-  const { fields: executionFields, append: appendExecution, remove: removeExecution } = useFieldArray({
-    control,
-    name: "execution_schedule" as never,
+    name: "schedules",
   });
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     setResult(null);
+
+    // Transform form data to API payload
+    const payload = {
+      ...data,
+      program_schedule: data.schedules.map(s => `${s.startDay} ${s.startHour}:${s.startMinute}`),
+      execution_schedule: data.schedules.map(s => calculateExecutionTime(s.startDay, s.startHour, s.startMinute, s.offsetMinutes)),
+    };
+
     try {
       const response = await fetch("/api/recordings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
 
       const json = await response.json();
@@ -108,7 +137,7 @@ export default function Home() {
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
               <label htmlFor="id" className="block text-sm font-medium text-gray-700">ID</label>
-              <p className="text-xs text-gray-500 mb-1">番組ID: 番組を一意に識別する文字列で、AWSの各種リソースの命名やURLなどに使用されます</p>
+              <p className="text-xs text-gray-500 mb-1">番組ID: 番組を一意に識別する文字列</p>
               <input
                 type="text"
                 id="id"
@@ -121,7 +150,7 @@ export default function Home() {
 
             <div>
               <label htmlFor="station" className="block text-sm font-medium text-gray-700">Station ID</label>
-              <p className="text-xs text-gray-500 mb-1">放送局: 録音対象の放送局を指定します</p>
+              <p className="text-xs text-gray-500 mb-1">放送局: 録音対象の放送局</p>
               <input
                 type="text"
                 id="station"
@@ -134,7 +163,7 @@ export default function Home() {
 
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
-              <p className="text-xs text-gray-500 mb-1">番組名: 生成されるPodcastフィードの番組名に使用されます</p>
+              <p className="text-xs text-gray-500 mb-1">番組名: 生成されるPodcastフィードの番組名</p>
               <input
                 type="text"
                 id="title"
@@ -147,7 +176,7 @@ export default function Home() {
 
             <div>
               <label htmlFor="author" className="block text-sm font-medium text-gray-700">Author</label>
-              <p className="text-xs text-gray-500 mb-1">作者: 生成されるPodcastの作者フィールドに使用されます</p>
+              <p className="text-xs text-gray-500 mb-1">作者: 生成されるPodcastの作者フィールド</p>
               <input
                 type="text"
                 id="author"
@@ -160,7 +189,7 @@ export default function Home() {
 
             <div>
               <label htmlFor="area" className="block text-sm font-medium text-gray-700">Area ID</label>
-              <p className="text-xs text-gray-500 mb-1">エリアID: 録音対象のradikoのエリアIDを指定します。デプロイ時にradikoプレミアムの認証情報を指定しない場合はJP13のみ指定できます。</p>
+              <p className="text-xs text-gray-500 mb-1">エリアID: 録音対象のradikoのエリアID (通常 JP13)</p>
               <input
                 type="text"
                 id="area"
@@ -173,7 +202,7 @@ export default function Home() {
 
             <div className="sm:col-span-2">
               <label htmlFor="image" className="block text-sm font-medium text-gray-700">Image URL</label>
-              <p className="text-xs text-gray-500 mb-1">画像: Podcastの番組サムネイルに使用する画像のURLを指定します</p>
+              <p className="text-xs text-gray-500 mb-1">画像: Podcastの番組サムネイルURL</p>
               <input
                 type="url"
                 id="image"
@@ -186,85 +215,31 @@ export default function Home() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Broadcast Schedule (Display)</label>
-            <p className="text-xs text-gray-500 mb-2">番組開始日時: 録音対象番組の放送開始曜日と時間を日本時間で指定します</p>
-            <div className="space-y-2">
-
-
-              {programFields.map((field, index) => (
-                <div key={field.id} className="flex gap-2 items-start">
-                  <Controller
-                    control={control}
-                    name={`program_schedule.${index}` as const}
-                    render={({ field }) => (
-                      <BroadcastSchedulePicker
-                        value={field.value}
-                        onChange={field.onChange}
-                        className="flex-1"
-                      />
-                    )}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeProgram(index)}
-                    className="p-2 text-gray-400 hover:text-red-500"
-                    disabled={programFields.length === 1}
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </button>
-                </div>
+            <label className="block text-sm font-medium text-gray-700 mb-4">Schedules and Recording Offset</label>
+            <div className="space-y-4">
+              {fields.map((field, index) => (
+                <ScheduleRow
+                  key={field.id}
+                  index={index}
+                  control={control}
+                  register={register}
+                  remove={() => remove(index)}
+                  canRemove={fields.length > 1}
+                  errors={errors}
+                />
               ))}
+
               <button
                 type="button"
-                onClick={() => appendProgram("")}
+                onClick={() => append({ startDay: "Mon", startHour: "21", startMinute: "00", offsetMinutes: 125 })}
                 className="mt-2 inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 <Plus className="h-4 w-4 mr-1" /> Add Schedule
               </button>
-              {errors.program_schedule && (
-                <p className="mt-1 text-sm text-red-600">{errors.program_schedule.message}</p>
-              )}
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Execution Schedule (Recording)</label>
-            <p className="text-xs text-gray-500 mb-2">録音開始日時: 録音処理を実行する曜日と日時を日本時間で指定します。録音処理はタイムフリーのAPIを使用して行うため、番組終了後の任意の時間を指定してください。</p>
-            <div className="space-y-2">
-              {executionFields.map((field, index) => (
-                <div key={field.id} className="flex gap-2">
-                  <Controller
-                    control={control}
-                    name={`execution_schedule.${index}` as const}
-                    render={({ field }) => (
-                      <ExecutionSchedulePicker
-                        value={field.value}
-                        onChange={field.onChange}
-                        className="flex-1"
-                      />
-                    )}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeExecution(index)}
-                    className="p-2 text-gray-400 hover:text-red-500"
-                    disabled={executionFields.length === 1}
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => appendExecution("")}
-                className="mt-2 inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <Plus className="h-4 w-4 mr-1" /> Add Execution Time
-              </button>
-              {errors.execution_schedule && (
-                <p className="mt-1 text-sm text-red-600">{errors.execution_schedule.message}</p>
-              )}
-            </div>
+            {errors.schedules && (
+              <p className="mt-1 text-sm text-red-600">{errors.schedules.message}</p>
+            )}
           </div>
 
           <div className="pt-4 border-t border-gray-200">
@@ -276,8 +251,77 @@ export default function Home() {
               {isSubmitting ? "Saving..." : "Save Recording Schedule"}
             </button>
           </div>
-        </form >
-      </div >
-    </div >
+        </form>
+      </div>
+    </div>
+  );
+}
+
+interface ScheduleRowProps {
+  index: number;
+  control: Control<FormValues>;
+  register: UseFormRegister<FormValues>;
+  remove: () => void;
+  canRemove: boolean;
+  errors: FieldErrors<FormValues>;
+}
+
+function ScheduleRow({ index, control, register, remove, canRemove, errors }: ScheduleRowProps) {
+  const watchStartDay = useWatch({ control, name: `schedules.${index}.startDay` });
+  const watchStartHour = useWatch({ control, name: `schedules.${index}.startHour` });
+  const watchStartMinute = useWatch({ control, name: `schedules.${index}.startMinute` });
+  const watchOffset = useWatch({ control, name: `schedules.${index}.offsetMinutes` });
+
+  const executionTime = calculateExecutionTime(watchStartDay, watchStartHour, watchStartMinute, watchOffset || 0);
+
+  return (
+    <div className="flex flex-col sm:flex-row gap-4 p-4 border rounded-md bg-gray-50 items-start sm:items-center">
+      <div className="flex-1">
+        <label className="block text-xs font-medium text-gray-500 mb-1">Broadcast Start Time</label>
+        <p className="text-[10px] text-gray-400 mb-1">番組の放送開始日時</p>
+        <Controller
+          control={control}
+          name={`schedules.${index}`}
+          render={({ field: { value, onChange } }) => (
+            <BroadcastSchedulePicker
+              value={`${value.startDay} ${value.startHour}:${value.startMinute}`}
+              onChange={(newVal) => {
+                const [day, time] = newVal.split(" ");
+                const [hour, minute] = time.split(":");
+                onChange({ ...value, startDay: day, startHour: hour, startMinute: minute });
+              }}
+            />
+          )}
+        />
+      </div>
+
+      <div className="w-full sm:w-32">
+        <label className="block text-xs font-medium text-gray-500 mb-1">Offset (min)</label>
+        <p className="text-[10px] text-gray-400 mb-1">開始から録音までの分数</p>
+        <input
+          type="number"
+          {...register(`schedules.${index}.offsetMinutes`, { valueAsNumber: true })}
+          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+        />
+        {errors.schedules?.[index]?.offsetMinutes && (
+          <p className="mt-1 text-xs text-red-600">{errors.schedules[index]?.offsetMinutes?.message}</p>
+        )}
+      </div>
+
+      <div className="flex-1 sm:text-right">
+        <label className="block text-xs font-medium text-gray-500 mb-1">Execution Time</label>
+        <p className="text-[10px] text-gray-400 mb-1">実際の録音開始日時</p>
+        <div className="text-sm font-semibold text-gray-900">{executionTime}</div>
+      </div>
+
+      <button
+        type="button"
+        onClick={remove}
+        className="p-2 text-gray-400 hover:text-red-500 mt-2 sm:mt-0"
+        disabled={!canRemove}
+      >
+        <Trash2 className="h-5 w-5" />
+      </button>
+    </div>
   );
 }
