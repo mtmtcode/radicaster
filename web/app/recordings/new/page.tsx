@@ -28,7 +28,7 @@ const formSchema = z.object({
   id: z.string().min(1, "ID is required").regex(/^[a-z0-9_-]+$/, "ID must be lowercase alphanumeric, dash, or underscore"),
   title: z.string().min(1, "Title is required"),
   author: z.string().min(1, "Author is required"),
-  image: z.string().url("Must be a valid URL").or(z.literal("")),
+  imageFile: z.any().optional(),
   area: z.string().min(1, "Area ID is required"),
   station: z.string().min(1, "Station ID is required"),
   schedules: z.array(scheduleItemSchema).min(1, "At least one schedule is required"),
@@ -72,7 +72,7 @@ export default function Home() {
       id: "",
       title: "",
       author: "",
-      image: "",
+      imageFile: null,
       area: DEFAULT_AREA_ID,
       station: "",
       schedules: [{ startDay: "Mon", startHour: "21", startMinute: "00", durationMinutes: undefined as any, offsetMinutes: 5 }],
@@ -97,18 +97,25 @@ export default function Home() {
     setResult(null);
 
     // Transform form data to API payload
+    const { imageFile, ...rest } = data;
+
     const payload = {
-      ...data,
+      ...rest,
       program_schedule: data.schedules.map(s => `${s.startDay} ${s.startHour}:${s.startMinute}`),
       duration: data.schedules[0]?.durationMinutes,
       execution_schedule: data.schedules.map(s => calculateExecutionTime(s.startDay, s.startHour, s.startMinute, s.durationMinutes, s.offsetMinutes)),
     };
 
+    const formData = new FormData();
+    formData.append("data", JSON.stringify(payload));
+    if (imageFile && imageFile.length > 0) {
+      formData.append("image", imageFile[0]);
+    }
+
     try {
       const response = await fetch("/api/recordings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
       const json = await response.json();
@@ -221,16 +228,16 @@ export default function Home() {
             </div>
 
             <div className="sm:col-span-2">
-              <label htmlFor="image" className="block text-sm font-medium text-gray-700">Image URL</label>
-              <p className="text-xs text-gray-500 mb-1">画像: Podcastの番組サムネイルURL</p>
+              <label htmlFor="imageFile" className="block text-sm font-medium text-gray-700">Artwork Image</label>
+              <p className="text-xs text-gray-500 mb-1">画像: Podcastのアートワーク (JPEG/PNG)</p>
               <input
-                type="url"
-                id="image"
-                {...register("image")}
-                className={cn("mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border", errors.image && "border-red-500")}
-                placeholder="https://example.com/image.jpg"
+                type="file"
+                id="imageFile"
+                accept="image/jpeg,image/png"
+                {...register("imageFile")}
+                className={cn("mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100", errors.imageFile && "border-red-500")}
               />
-              {errors.image && <p className="mt-1 text-sm text-red-600">{errors.image.message}</p>}
+              {errors.imageFile && <p className="mt-1 text-sm text-red-600">{String(errors.imageFile.message)}</p>}
             </div>
           </div>
 

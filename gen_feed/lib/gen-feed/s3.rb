@@ -17,11 +17,14 @@ module Radicaster
         key = "radicaster/#{id}.yaml"
         resp = client.get_object(bucket: bucket, key: key)
         def_hash = YAML.load(resp.body.read)
+        
+        image_url = find_image(id)
+
         Definition.new(
           title: def_hash["title"],
           author: def_hash["author"],
           summary: def_hash["summary"],
-          image: def_hash["image"],
+          image: image_url,
         )
       end
 
@@ -57,6 +60,17 @@ module Radicaster
 
       def build_public_url(key)
         "#{url}/#{key}"
+      end
+
+      def find_image(id)
+        resp = client.list_objects_v2(bucket: bucket, prefix: "radicaster/#{id}.")
+        resp.contents.each do |c|
+          ext = File.extname(c.key)
+          if [".jpg", ".jpeg", ".png"].include?(ext.downcase)
+            return build_public_url(c.key)
+          end
+        end
+        nil
       end
     end
   end

@@ -14,7 +14,6 @@ const requestSchema = z.object({
   id: z.string().min(1).regex(/^[a-z0-9_-]+$/),
   title: z.string().min(1),
   author: z.string().min(1),
-  image: z.string().url().or(z.literal("")),
   area: z.string().min(1),
   station: z.string().min(1),
   duration: z.number().min(1),
@@ -148,7 +147,15 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const formData = await req.formData();
+    const dataJson = formData.get("data") as string;
+    const imageFile = formData.get("image") as File | null;
+
+    if (!dataJson) {
+      return NextResponse.json({ error: "Missing data" }, { status: 400 });
+    }
+
+    const body = JSON.parse(dataJson);
     const data = requestSchema.parse(body);
 
     const bucketName = process.env.RADICASTER_S3_BUCKET;
@@ -171,13 +178,14 @@ export async function POST(req: NextRequest) {
       station: data.station,
       area: data.area,
       author: data.author,
-      image: data.image,
+      // image: data.image, // Removed
       duration: data.duration,
       program_schedule: data.program_schedule,
       execution_schedule: executionSchedules.map((s) => s.toYamlString()),
     });
 
     // 2. Upload to S3
+    // Upload YAML
     await s3Client.send(
       new PutObjectCommand({
         Bucket: bucketName,
@@ -186,6 +194,25 @@ export async function POST(req: NextRequest) {
         ContentType: "application/x-yaml",
       })
     );
+
+    // Upload Image if present
+    if (imageFile) {
+      const arrayBuffer = await imageFile.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      let ext = "jpg";
+      if (imageFile.type === "image/png") ext = "png";
+      else if (imageFile.type === "image/jpeg") ext = "jpg";
+
+      await s3Client.send(
+        new PutObjectCommand({
+          Bucket: bucketName,
+          Key: `radicaster/${data.id}.${ext}`,
+          Body: buffer,
+          ContentType: imageFile.type,
+        })
+      );
+    }
 
     // 3. Register EventBridge Rules
     for (let i = 0; i < executionSchedules.length; i++) {
