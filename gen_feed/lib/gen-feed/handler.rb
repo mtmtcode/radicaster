@@ -37,14 +37,14 @@ module Radicaster
         raise '"s3" is not contained in the event' unless event["Records"][0]["s3"]
         key = event["Records"][0]["s3"]["object"]["key"]
         logger.debug(key)
-        id = Pathname.new(key).dirname.to_s
+        id = key.split("/").first
         GenerateFeedCommand.new(
           id: id,
         )
       end
 
       def exec(cmd)
-        logger.debug("Start exec. id: #{cmd}")
+        logger.debug("Start exec. id: #{cmd.id}")
         definition = storage.find_definition(cmd.id)
         episodes = storage.list_episodes(cmd.id)
         feed = generator.generate(definition, episodes)
