@@ -108,6 +108,7 @@ export default function Home() {
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
               <label htmlFor="id" className="block text-sm font-medium text-gray-700">ID</label>
+              <p className="text-xs text-gray-500 mb-1">番組ID: 番組を一意に識別する文字列で、AWSの各種リソースの命名やURLなどに使用されます</p>
               <input
                 type="text"
                 id="id"
@@ -120,6 +121,7 @@ export default function Home() {
 
             <div>
               <label htmlFor="station" className="block text-sm font-medium text-gray-700">Station ID</label>
+              <p className="text-xs text-gray-500 mb-1">放送局: 録音対象の放送局を指定します</p>
               <input
                 type="text"
                 id="station"
@@ -132,6 +134,7 @@ export default function Home() {
 
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
+              <p className="text-xs text-gray-500 mb-1">番組名: 生成されるPodcastフィードの番組名に使用されます</p>
               <input
                 type="text"
                 id="title"
@@ -144,6 +147,7 @@ export default function Home() {
 
             <div>
               <label htmlFor="author" className="block text-sm font-medium text-gray-700">Author</label>
+              <p className="text-xs text-gray-500 mb-1">作者: 生成されるPodcastの作者フィールドに使用されます</p>
               <input
                 type="text"
                 id="author"
@@ -156,6 +160,7 @@ export default function Home() {
 
             <div>
               <label htmlFor="area" className="block text-sm font-medium text-gray-700">Area ID</label>
+              <p className="text-xs text-gray-500 mb-1">エリアID: 録音対象のradikoのエリアIDを指定します。デプロイ時にradikoプレミアムの認証情報を指定しない場合はJP13のみ指定できます。</p>
               <input
                 type="text"
                 id="area"
@@ -168,6 +173,7 @@ export default function Home() {
 
             <div className="sm:col-span-2">
               <label htmlFor="image" className="block text-sm font-medium text-gray-700">Image URL</label>
+              <p className="text-xs text-gray-500 mb-1">画像: Podcastの番組サムネイルに使用する画像のURLを指定します</p>
               <input
                 type="url"
                 id="image"
@@ -181,6 +187,7 @@ export default function Home() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Broadcast Schedule (Display)</label>
+            <p className="text-xs text-gray-500 mb-2">番組開始日時: 録音対象番組の放送開始曜日と時間を日本時間で指定します</p>
             <div className="space-y-2">
 
 
@@ -222,6 +229,7 @@ export default function Home() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Execution Schedule (Recording)</label>
+            <p className="text-xs text-gray-500 mb-2">録音開始日時: 録音処理を実行する曜日と日時を日本時間で指定します。録音処理はタイムフリーのAPIを使用して行うため、番組終了後の任意の時間を指定してください。</p>
             <div className="space-y-2">
               {executionFields.map((field, index) => (
                 <div key={field.id} className="flex gap-2">
