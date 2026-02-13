@@ -17,6 +17,7 @@ module Radicaster::RecRadiko
           author: dummy-author
           summary: dummy-summary
           image: http://foo.test/bar.png
+          duration: 120
           program_schedule: Tue 01:00:00
         EOS
       end
@@ -30,6 +31,7 @@ module Radicaster::RecRadiko
           id: "test",
           area: "JP13",
           station: "TEST",
+          duration: 120,
           program_schedule: Schedule.new(ScheduleItem.new("Tue", 1, 0, 0)),
         ))
       end

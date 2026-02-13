@@ -38,6 +38,7 @@ module Radicaster::RecRadiko
               image: http://example.com/cover.png
               area: JP13
               station: TEST
+              duration: 120
               program_schedule:
               - Mon 08:30:00
               - Tue 08:30:00
@@ -67,6 +68,7 @@ module Radicaster::RecRadiko
               image: http://example.com/cover.png
               area: JP13
               station: TEST
+              duration: 120
               program_schedule:
               - ["Mon 08:30:00", "Mon 10:00:00"]
               execution_schedule: Tue 03:03:00
