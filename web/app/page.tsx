@@ -6,12 +6,15 @@ import * as z from "zod";
 import { Plus, Trash2 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { BroadcastSchedulePicker } from "./components/BroadcastSchedulePicker";
+import { RADIKO_AREAS, RADIKO_STATIONS, DEFAULT_AREA_ID } from "./constants/radiko";
+
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
 
 // Internal schema for the form
 const scheduleItemSchema = z.object({
@@ -69,7 +72,7 @@ export default function Home() {
       title: "",
       author: "",
       image: "",
-      area: "JP13",
+      area: DEFAULT_AREA_ID,
       station: "",
       schedules: [{ startDay: "Mon", startHour: "21", startMinute: "00", offsetMinutes: 125 }],
     },
@@ -81,6 +84,12 @@ export default function Home() {
     control,
     name: "schedules",
   });
+
+  const selectedArea = useWatch({ control, name: "area" });
+
+  const filteredStations = useMemo(() => {
+    return RADIKO_STATIONS.filter((s) => s.areaId === selectedArea);
+  }, [selectedArea]);
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
@@ -149,15 +158,37 @@ export default function Home() {
             </div>
 
             <div>
-              <label htmlFor="station" className="block text-sm font-medium text-gray-700">Station ID</label>
+              <label htmlFor="area" className="block text-sm font-medium text-gray-700">Area</label>
+              <p className="text-xs text-gray-500 mb-1">エリア: 録音対象のradikoのエリア</p>
+              <select
+                id="area"
+                {...register("area")}
+                className={cn("mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border", errors.area && "border-red-500")}
+              >
+                {RADIKO_AREAS.map((area) => (
+                  <option key={area.id} value={area.id}>
+                    {area.name} ({area.id})
+                  </option>
+                ))}
+              </select>
+              {errors.area && <p className="mt-1 text-sm text-red-600">{errors.area.message}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="station" className="block text-sm font-medium text-gray-700">Station</label>
               <p className="text-xs text-gray-500 mb-1">放送局: 録音対象の放送局</p>
-              <input
-                type="text"
+              <select
                 id="station"
                 {...register("station")}
                 className={cn("mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border", errors.station && "border-red-500")}
-                placeholder="TBS"
-              />
+              >
+                <option value="">Select a station</option>
+                {filteredStations.map((station) => (
+                  <option key={station.id} value={station.id}>
+                    {station.name} ({station.id})
+                  </option>
+                ))}
+              </select>
               {errors.station && <p className="mt-1 text-sm text-red-600">{errors.station.message}</p>}
             </div>
 
@@ -185,19 +216,6 @@ export default function Home() {
                 placeholder="Broadcaster Name"
               />
               {errors.author && <p className="mt-1 text-sm text-red-600">{errors.author.message}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="area" className="block text-sm font-medium text-gray-700">Area ID</label>
-              <p className="text-xs text-gray-500 mb-1">エリアID: 録音対象のradikoのエリアID (通常 JP13)</p>
-              <input
-                type="text"
-                id="area"
-                {...register("area")}
-                className={cn("mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border", errors.area && "border-red-500")}
-                placeholder="JP13"
-              />
-              {errors.area && <p className="mt-1 text-sm text-red-600">{errors.area.message}</p>}
             </div>
 
             <div className="sm:col-span-2">
