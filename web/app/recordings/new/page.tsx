@@ -7,6 +7,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { BroadcastSchedulePicker } from "@/app/components/BroadcastSchedulePicker";
 import { RADIKO_AREAS, RADIKO_STATIONS, DEFAULT_AREA_ID } from "@/app/constants/radiko";
 
@@ -61,6 +62,7 @@ function calculateExecutionTime(day: string, hour: string, minute: string, durat
 }
 
 export default function Home() {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -114,7 +116,7 @@ export default function Home() {
         throw new Error(json.error || "Failed to submit");
       }
 
-      setResult({ success: true, message: `Successfully scheduled recording for ${json.id}` });
+      router.push("/");
     } catch (error: unknown) {
       if (error instanceof Error) {
         setResult({ success: false, message: error.message });
