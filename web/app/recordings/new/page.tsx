@@ -19,7 +19,8 @@ const scheduleItemSchema = z.object({
   startDay: z.string(),
   startHour: z.string(),
   startMinute: z.string(),
-  offsetMinutes: z.number().min(1, "Offset must be at least 1 minute").default(125),
+  durationMinutes: z.number().min(1, "Duration must be at least 1 minute"),
+  offsetMinutes: z.number().min(0, "Offset must be at least 0 minutes").default(5),
 });
 
 const formSchema = z.object({
@@ -37,12 +38,12 @@ type FormValues = z.infer<typeof formSchema>;
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // Helper to calculate execution time
-function calculateExecutionTime(day: string, hour: string, minute: string, offset: number) {
+function calculateExecutionTime(day: string, hour: string, minute: string, duration: number, offset: number) {
   const dayIndex = DAYS.indexOf(day);
   if (dayIndex === -1) return "Invalid Day";
 
   const totalCurrentMinutes = parseInt(hour || "0") * 60 + parseInt(minute || "0");
-  const totalMinutesVal = totalCurrentMinutes + (offset || 0);
+  const totalMinutesVal = totalCurrentMinutes + (duration || 0) + (offset || 0);
   let totalMinutes = totalMinutesVal;
   let newDayIndex = dayIndex;
 
@@ -72,7 +73,7 @@ export default function Home() {
       image: "",
       area: DEFAULT_AREA_ID,
       station: "",
-      schedules: [{ startDay: "Mon", startHour: "21", startMinute: "00", offsetMinutes: 125 }],
+      schedules: [{ startDay: "Mon", startHour: "21", startMinute: "00", durationMinutes: undefined as any, offsetMinutes: 5 }],
     },
   });
 
@@ -97,7 +98,8 @@ export default function Home() {
     const payload = {
       ...data,
       program_schedule: data.schedules.map(s => `${s.startDay} ${s.startHour}:${s.startMinute}`),
-      execution_schedule: data.schedules.map(s => calculateExecutionTime(s.startDay, s.startHour, s.startMinute, s.offsetMinutes)),
+      duration: data.schedules[0]?.durationMinutes,
+      execution_schedule: data.schedules.map(s => calculateExecutionTime(s.startDay, s.startHour, s.startMinute, s.durationMinutes, s.offsetMinutes)),
     };
 
     try {
@@ -231,7 +233,7 @@ export default function Home() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-4">Schedules and Recording Offset</label>
+            <label className="block text-sm font-medium text-gray-700 mb-4">Schedules, Duration and Recording Offset</label>
             <div className="space-y-4">
               {fields.map((field, index) => (
                 <ScheduleRow
@@ -247,7 +249,7 @@ export default function Home() {
 
               <button
                 type="button"
-                onClick={() => append({ startDay: "Mon", startHour: "21", startMinute: "00", offsetMinutes: 125 })}
+                onClick={() => append({ startDay: "Mon", startHour: "21", startMinute: "00", durationMinutes: undefined as any, offsetMinutes: 5 })}
                 className="mt-2 inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 <Plus className="h-4 w-4 mr-1" /> Add Schedule
@@ -286,9 +288,10 @@ function ScheduleRow({ index, control, register, remove, canRemove, errors }: Sc
   const watchStartDay = useWatch({ control, name: `schedules.${index}.startDay` });
   const watchStartHour = useWatch({ control, name: `schedules.${index}.startHour` });
   const watchStartMinute = useWatch({ control, name: `schedules.${index}.startMinute` });
+  const watchDuration = useWatch({ control, name: `schedules.${index}.durationMinutes` });
   const watchOffset = useWatch({ control, name: `schedules.${index}.offsetMinutes` });
 
-  const executionTime = calculateExecutionTime(watchStartDay, watchStartHour, watchStartMinute, watchOffset || 0);
+  const executionTime = calculateExecutionTime(watchStartDay, watchStartHour, watchStartMinute, watchDuration, watchOffset || 0);
 
   return (
     <div className="flex flex-col sm:flex-row gap-4 p-4 border rounded-md bg-gray-50 items-start sm:items-center">
@@ -311,9 +314,22 @@ function ScheduleRow({ index, control, register, remove, canRemove, errors }: Sc
         />
       </div>
 
-      <div className="w-full sm:w-32">
+      <div className="w-full sm:w-28">
+        <label className="block text-xs font-medium text-gray-500 mb-1">Duration (min)</label>
+        <p className="text-[10px] text-gray-400 mb-1">番組の長さ（分）</p>
+        <input
+          type="number"
+          {...register(`schedules.${index}.durationMinutes`, { valueAsNumber: true })}
+          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+        />
+        {errors.schedules?.[index]?.durationMinutes && (
+          <p className="mt-1 text-xs text-red-600">{errors.schedules[index]?.durationMinutes?.message}</p>
+        )}
+      </div>
+
+      <div className="w-full sm:w-28">
         <label className="block text-xs font-medium text-gray-500 mb-1">Offset (min)</label>
-        <p className="text-[10px] text-gray-400 mb-1">開始から録音までの分数</p>
+        <p className="text-[10px] text-gray-400 mb-1">終了から録音までの分数</p>
         <input
           type="number"
           {...register(`schedules.${index}.offsetMinutes`, { valueAsNumber: true })}

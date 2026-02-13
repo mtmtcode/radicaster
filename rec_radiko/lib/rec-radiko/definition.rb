@@ -3,7 +3,7 @@ require "yaml"
 module Radicaster
   module RecRadiko
     class Definition
-      attr_reader :id, :area, :station, :program_schedule
+      attr_reader :id, :area, :station, :program_schedule, :duration
 
       def self.parse(s)
         d = YAML.load(s)
@@ -13,6 +13,7 @@ module Radicaster
           area = d.fetch("area")
           station = d.fetch("station")
           schedule = d.fetch("program_schedule")
+          duration = d.fetch("duration")
         rescue KeyError => e
           raise ArgumentError, "requird key `#{e.key}` not found"
         end
@@ -31,18 +32,19 @@ module Radicaster
           parsed_schedule = Schedule.new(*parsed_items)
         end
 
-        Definition.new(id: id, area: area, station: station, program_schedule: parsed_schedule)
+        Definition.new(id: id, area: area, station: station, program_schedule: parsed_schedule, duration: duration)
       end
 
-      def initialize(id:, area:, station:, program_schedule:)
+      def initialize(id:, area:, station:, program_schedule:, duration:)
         @id = id
         @area = area
         @station = station
         @program_schedule = program_schedule
+        @duration = duration
       end
 
       def ==(other)
-        id == other.id && area == other.area && station == other.station && program_schedule == other.program_schedule
+        id == other.id && area == other.area && station == other.station && program_schedule == other.program_schedule && duration == other.duration
       end
 
       def latest_start_times(now)

@@ -8,7 +8,7 @@ module Radicaster
 
       def rec(def_, now)
         start_times = def_.latest_start_times(now)
-        paths = start_times.map { |st| radiko.rec(def_.area, def_.station, st) }
+        paths = start_times.map { |st| radiko.rec(def_.area, def_.station, st, def_.duration) }
         concated_path = concater.concat(paths)
 
         Episode.new(

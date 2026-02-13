@@ -17,6 +17,7 @@ const requestSchema = z.object({
   image: z.string().url().or(z.literal("")),
   area: z.string().min(1),
   station: z.string().min(1),
+  duration: z.number().min(1),
   program_schedule: z.array(z.string().min(1)),
   execution_schedule: z.array(scheduleSchema),
 });
@@ -171,6 +172,7 @@ export async function POST(req: NextRequest) {
       area: data.area,
       author: data.author,
       image: data.image,
+      duration: data.duration,
       program_schedule: data.program_schedule,
       execution_schedule: executionSchedules.map((s) => s.toYamlString()),
     });

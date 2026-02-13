@@ -13,6 +13,7 @@ module Radicaster::RecRadiko
               image: http://example.com/cover.png
               area: JP13
               station: TEST
+              duration: 120
               program_schedule: Tue 01:00:00
               execution_schedule: Tue 03:03:00
             EOS
@@ -22,6 +23,7 @@ module Radicaster::RecRadiko
               id: "test",
               area: "JP13",
               station: "TEST",
+              duration: 120,
               program_schedule: Schedule.new(ScheduleItem.new("Tue", 1, 0, 0)),
             ))
           }
@@ -47,6 +49,7 @@ module Radicaster::RecRadiko
               id: "test",
               area: "JP13",
               station: "TEST",
+              duration: 120,
               program_schedule: Schedule.new(
                 ScheduleItem.new("Mon", 8, 30, 0),
                 ScheduleItem.new("Tue", 8, 30, 0),
@@ -74,6 +77,7 @@ module Radicaster::RecRadiko
               id: "test",
               area: "JP13",
               station: "TEST",
+              duration: 120,
               program_schedule: Schedule.new(
                 CombinedScheduleItem.new(ScheduleItem.new("Mon", 8, 30, 0), ScheduleItem.new("Mon", 10, 0, 0))
               ),
@@ -117,6 +121,14 @@ module Radicaster::RecRadiko
                   station: TEST
                 EOS
               ],
+              [
+                <<~EOS
+                  id: test
+                  area: JP13
+                  station: TEST
+                  program_schedule: Tue 01:00:00
+                EOS
+              ],
             ]
           end
 
@@ -135,6 +147,7 @@ module Radicaster::RecRadiko
           id: "test",
           area: "JP13",
           station: "TEST",
+          duration: 120,
           program_schedule: Schedule.new(
             ScheduleItem.new("Mon", 8, 30, 0),
             ScheduleItem.new("Tue", 8, 30, 0),
@@ -142,17 +155,18 @@ module Radicaster::RecRadiko
         )
       end
 
-      where(:id, :area, :station, :starts, :expected) do
+      where(:id, :area, :station, :starts, :duration, :expected) do
         [
-          ["test", "JP13", "TEST", Schedule.new(ScheduleItem.new("Mon", 8, 30, 0), ScheduleItem.new("Tue", 8, 30, 0)), true],
-          ["testX", "JP13", "TEST", Schedule.new(ScheduleItem.new("Mon", 8, 30, 0), ScheduleItem.new("Tue", 8, 30, 0)), false],
-          ["test", "JP13X", "TEST", Schedule.new(ScheduleItem.new("Mon", 8, 30, 0), ScheduleItem.new("Tue", 8, 30, 0)), false],
-          ["test", "JP13", "TESTX", Schedule.new(ScheduleItem.new("Mon", 8, 30, 0), ScheduleItem.new("Tue", 8, 30, 0)), false],
-          ["test", "JP13", "TEST", Schedule.new(ScheduleItem.new("Mon", 8, 30, 1), ScheduleItem.new("Tue", 8, 30, 0)), false],
+          ["test", "JP13", "TEST", Schedule.new(ScheduleItem.new("Mon", 8, 30, 0), ScheduleItem.new("Tue", 8, 30, 0)), 120, true],
+          ["testX", "JP13", "TEST", Schedule.new(ScheduleItem.new("Mon", 8, 30, 0), ScheduleItem.new("Tue", 8, 30, 0)), 120, false],
+          ["test", "JP13X", "TEST", Schedule.new(ScheduleItem.new("Mon", 8, 30, 0), ScheduleItem.new("Tue", 8, 30, 0)), 120, false],
+          ["test", "JP13", "TESTX", Schedule.new(ScheduleItem.new("Mon", 8, 30, 0), ScheduleItem.new("Tue", 8, 30, 0)), 120, false],
+          ["test", "JP13", "TEST", Schedule.new(ScheduleItem.new("Mon", 8, 30, 1), ScheduleItem.new("Tue", 8, 30, 0)), 120, false],
+          ["test", "JP13", "TEST", Schedule.new(ScheduleItem.new("Mon", 8, 30, 0), ScheduleItem.new("Tue", 8, 30, 0)), 60, false],
         ]
       end
 
-      let(:other) { Definition.new(id: id, area: area, station: station, program_schedule: starts) }
+      let(:other) { Definition.new(id: id, area: area, station: station, program_schedule: starts, duration: duration) }
       subject { this == other }
 
       with_them do
@@ -175,6 +189,7 @@ module Radicaster::RecRadiko
           id: id,
           area: area,
           station: station,
+          duration: 120,
           program_schedule: schedule,
         )
       }

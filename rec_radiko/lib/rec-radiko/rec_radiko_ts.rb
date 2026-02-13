@@ -1,7 +1,6 @@
 module Radicaster
   module RecRadiko
     class RecRadikoTs
-      DEFAULT_DURATION_MIN = 120
 
       def initialize(workdir, email = nil, password = nil)
         @workdir = workdir
@@ -11,11 +10,11 @@ module Radicaster
         @password = password
       end
 
-      def rec(area, station, start_time)
+      def rec(area, station, start_time, duration)
         start_str = start_time.strftime("%Y%m%d%H%M%S")
         out_path = output_path(workdir, start_str, station)
 
-        cmd = build_command(station, start_str, out_path)
+        cmd = build_command(station, start_str, duration, out_path)
         system(cmd, exception: true)
 
         out_path
@@ -25,11 +24,11 @@ module Radicaster
 
       attr_reader :workdir, :email, :password
 
-      def build_command(station, start_str, out_path)
+      def build_command(station, start_str, duration, out_path)
         parts = ["rec_radiko_ts.sh"]
         parts << "-s #{station}"
         parts << "-f #{start_str}"
-        parts << "-d #{DEFAULT_DURATION_MIN}"
+        parts << "-d #{duration}"
         parts << "-o \"#{out_path}\""
 
         if !email.nil? && !password.nil?

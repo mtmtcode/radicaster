@@ -44,7 +44,7 @@ module Radicaster::RecRadiko
         it "executes rec_radiko_ts.sh without credentials" do
           allow(radiko).to receive(:system)
 
-          ret = radiko.rec(area, id, start_time)
+          ret = radiko.rec(area, id, start_time, 120)
 
           expect(ret).to eq("/tmp/20201122010000-TEST.m4a")
           expect(radiko).to have_received(:system).with(
@@ -61,7 +61,7 @@ module Radicaster::RecRadiko
         it "executes rec_radiko_ts.sh with credentials" do
           allow(radiko).to receive(:system)
 
-          ret = radiko.rec(area, id, start_time)
+          ret = radiko.rec(area, id, start_time, 120)
 
           expect(ret).to eq("/tmp/20201122010000-TEST.m4a")
           expect(radiko).to have_received(:system).with(
