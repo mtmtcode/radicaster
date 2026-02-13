@@ -3,8 +3,8 @@ module Radicaster::RecRadiko
     describe "#concat" do
       let(:paths) {
         [
-          "/path/to/1.aac",
-          "/path/to/2.aac",
+          "/path/to/1.m4a",
+          "/path/to/2.m4a",
         ]
       }
       subject(:concater) { Ffmpeg.new() }
@@ -12,7 +12,7 @@ module Radicaster::RecRadiko
         # NOTE: ffmpegでconcatっぽいことをしていればOK
         expect(concater).to receive(:system).with(/\Affmpeg.*\Wconcat\W/, exception: true)
         ret = concater.concat(paths)
-        expect(ret).to eq("/path/to/1.m4a")
+        expect(ret).to eq("/path/to/1-concat.m4a")
       end
     end
   end

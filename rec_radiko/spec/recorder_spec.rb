@@ -30,7 +30,7 @@ module Radicaster::RecRadiko
 
         it "record and concat multiple episodes" do
           recorded_paths = [
-            "/path/to/1.aac",
+            "/path/to/1.m4a",
           ]
           expect(radiko).to receive(:rec).with("JP13", "TEST", Time.new(2021, 6, 22, 1, 0, 0, "+09:00")).and_return(recorded_paths[0])
           expect(concater).to receive(:concat).with(recorded_paths).and_return("/path/to/concated.m4a")
@@ -59,8 +59,8 @@ module Radicaster::RecRadiko
 
         it "record and concat multiple episodes" do
           recorded_paths = [
-            "/path/to/1.aac",
-            "/path/to/2.aac",
+            "/path/to/1.m4a",
+            "/path/to/2.m4a",
           ]
           expect(radiko).to receive(:rec).with("JP13", "TEST", Time.new(2021, 6, 22, 1, 0, 0, "+09:00")).and_return(recorded_paths[0])
           expect(radiko).to receive(:rec).with("JP13", "TEST", Time.new(2021, 6, 22, 2, 0, 0, "+09:00")).and_return(recorded_paths[1])

@@ -1,9 +1,9 @@
 module Radicaster::RecRadiko
-  describe Radigo do
+  describe RecRadikoTs do
     let(:workdir) { "/tmp" }
 
     describe "#initialize" do
-      context "normal caess" do
+      context "normal cases" do
         where(:email, :password) do
           [
             [nil, nil],
@@ -13,7 +13,7 @@ module Radicaster::RecRadiko
 
         with_them do
           it "does not raise error" do
-            expect { Radigo.new(workdir, email, password) }.to_not raise_error
+            expect { RecRadikoTs.new(workdir, email, password) }.to_not raise_error
           end
         end
       end
@@ -28,7 +28,7 @@ module Radicaster::RecRadiko
 
         with_them do
           it "raises RuntimeError" do
-            expect { Radigo.new(workdir, email, password) }.to raise_error(RuntimeError)
+            expect { RecRadikoTs.new(workdir, email, password) }.to raise_error(RuntimeError)
           end
         end
       end
@@ -40,30 +40,34 @@ module Radicaster::RecRadiko
       let(:start_time) { Time.new(2020, 11, 22, 1, 0, 0, "+09:00") }
 
       context "when credentials are not specified" do
-        subject(:radiko) { Radigo.new(workdir) }
-        it "executes radigo without credentials" do
+        subject(:radiko) { RecRadikoTs.new(workdir) }
+        it "executes rec_radiko_ts.sh without credentials" do
           allow(radiko).to receive(:system)
 
           ret = radiko.rec(area, id, start_time)
 
-          expect(ret).to eq("/tmp/20201122010000-TEST.aac")
-          expect(radiko).to have_received(:system).with("rm -f /tmp/20201122010000-TEST.aac").ordered
-          expect(radiko).to have_received(:system).with("env RADIGO_HOME=/tmp radigo rec -area=JP13 -id=TEST -s=20201122010000", exception: true).ordered
+          expect(ret).to eq("/tmp/20201122010000-TEST.m4a")
+          expect(radiko).to have_received(:system).with(
+            "rec_radiko_ts.sh -s TEST -f 20201122010000 -d 120 -o \"/tmp/20201122010000-TEST.m4a\"",
+            exception: true
+          )
         end
       end
 
       context "when credentials are specified" do
         let(:email) { "test@radicaster.test" }
         let(:password) { "password" }
-        subject(:radiko) { Radigo.new(workdir, email, password) }
-        it "executes radigo with credentials" do
+        subject(:radiko) { RecRadikoTs.new(workdir, email, password) }
+        it "executes rec_radiko_ts.sh with credentials" do
           allow(radiko).to receive(:system)
 
           ret = radiko.rec(area, id, start_time)
 
-          expect(ret).to eq("/tmp/20201122010000-TEST.aac")
-          expect(radiko).to have_received(:system).with("rm -f /tmp/20201122010000-TEST.aac").ordered
-          expect(radiko).to have_received(:system).with("env RADIGO_HOME=/tmp RADIKO_MAIL=test@radicaster.test RADIKO_PASSWORD=password radigo rec -area=JP13 -id=TEST -s=20201122010000", exception: true).ordered
+          expect(ret).to eq("/tmp/20201122010000-TEST.m4a")
+          expect(radiko).to have_received(:system).with(
+            "rec_radiko_ts.sh -s TEST -f 20201122010000 -d 120 -o \"/tmp/20201122010000-TEST.m4a\" -m \"test@radicaster.test\" -p \"password\"",
+            exception: true
+          )
         end
       end
     end
