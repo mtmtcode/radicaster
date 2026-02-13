@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { Plus, CheckCircle, XCircle, AlertTriangle, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Recording {
@@ -33,6 +33,22 @@ export default function RecordingsList() {
         alert(`Error: ${err.message}`);
       } finally {
         setTriggeringId(null);
+      }
+    }
+  };
+
+  const handleDeleteRecording = async (id: string) => {
+    if (confirm(`Are you sure you want to delete recording ${id}? This will remove the schedule and definition.`)) {
+      try {
+        const res = await fetch(`/api/recordings/${id}`, { method: "DELETE" });
+        if (!res.ok) {
+          const json = await res.json();
+          throw new Error(json.error || json.message || "Failed to delete");
+        }
+        // Remove from list
+        setRecordings((prev) => prev.filter((r) => r.id !== id));
+      } catch (err: any) {
+        alert(`Error: ${err.message}`);
       }
     }
   };
@@ -137,13 +153,23 @@ export default function RecordingsList() {
                           }}
                           disabled={triggeringId === recording.id}
                           className={cn(
-                            "mt-2 text-xs border rounded px-2 py-1 transition-colors",
+                            "mt-2 text-xs border rounded px-2 py-1 transition-colors mr-2",
                             triggeringId === recording.id
                               ? "text-gray-400 border-gray-300 cursor-not-allowed"
                               : "text-indigo-600 hover:text-indigo-900 border-indigo-600 hover:bg-indigo-50"
                           )}
                         >
                           {triggeringId === recording.id ? "Triggering..." : "Record Now"}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleDeleteRecording(recording.id);
+                          }}
+                          className="mt-2 text-xs border rounded px-2 py-1 transition-colors text-red-600 hover:text-red-900 border-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3 w-3 inline mr-1" />
+                          Delete
                         </button>
                       </div>
                     </div>
