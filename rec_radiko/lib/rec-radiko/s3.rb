@@ -7,7 +7,7 @@ module Radicaster
       end
 
       def find_definition(id)
-        resp = client.get_object(bucket: bucket, key: "#{id}/radicaster.yaml")
+        resp = client.get_object(bucket: bucket, key: "radicaster/#{id}.yaml")
         Definition.parse(resp.body.read)
       end
 
@@ -25,7 +25,7 @@ module Radicaster
       def make_key(episode)
         id = episode.id
         yyyymmdd = episode.start_time.strftime("%Y%m%d")
-        "#{id}/#{yyyymmdd}.m4a"
+        "#{id}/data/#{yyyymmdd}.m4a"
       end
     end
   end

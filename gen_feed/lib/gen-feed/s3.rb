@@ -14,7 +14,7 @@ module Radicaster
       end
 
       def find_definition(id)
-        key = "#{id}/#{DEFINITION_FILENAME}"
+        key = "radicaster/#{id}.yaml"
         resp = client.get_object(bucket: bucket, key: key)
         def_hash = YAML.load(resp.body.read)
         Definition.new(
@@ -26,7 +26,7 @@ module Radicaster
       end
 
       def list_episodes(id)
-        prefix = id + "/"
+        prefix = "#{id}/data/"
         resp = client.list_objects_v2(bucket: bucket, prefix: prefix)
         resp
           .contents

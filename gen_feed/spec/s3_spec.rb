@@ -20,7 +20,7 @@ module Radicaster::GenFeed
       end
 
       it "finds a defintion file according to passed prefix and returns a Definition object" do
-        key = "#{id}/radicaster.yaml"
+        key = "radicaster/#{id}.yaml"
         resp = double("response", body: StringIO.new(def_body))
         expect(client).to receive(:get_object)
                             .with(bucket: bucket, key: key)
@@ -38,9 +38,9 @@ module Radicaster::GenFeed
     describe "#list_episodes" do
       it "search audio files from specified path and returns an array of Episode" do
         # mocking s3 response
-        ep1_key = "#{id}/20210101.m4a"
-        ep2_key = "#{id}/20210102.m4a"
-        non_audio_key = "#{id}/20210101.txt"
+        ep1_key = "#{id}/data/20210101.m4a"
+        ep2_key = "#{id}/data/20210102.m4a"
+        non_audio_key = "#{id}/data/20210101.txt"
         ep1_obj = instance_double(Aws::S3::Types::Object, "ep1", key: ep1_key, size: 100, last_modified: Time.now)
         ep2_obj = instance_double(Aws::S3::Types::Object, "ep2", key: ep2_key, size: 100, last_modified: Time.now)
         non_audio_obj = instance_double(Aws::S3::Types::Object, "non-audio", key: non_audio_key, size: 100, last_modified: Time.now)
@@ -53,7 +53,7 @@ module Radicaster::GenFeed
         })
         expect(client).to receive(:list_objects_v2).with(
                             bucket: bucket,
-                            prefix: id + "/",
+                            prefix: "#{id}/data/",
                           )
                             .and_return(resp)
         episodes = s3.list_episodes(id)

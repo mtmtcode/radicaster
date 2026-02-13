@@ -24,7 +24,7 @@ module Radicaster::RecRadiko
       it "finds a defintion file by id and returns a Definition object" do
         resp = instance_double(Aws::S3::Types::GetObjectOutput, "resp", body: StringIO.new(def_body))
         expect(client).to receive(:get_object)
-                            .with(bucket: bucket, key: "test/radicaster.yaml")
+                            .with(bucket: bucket, key: "radicaster/test.yaml")
                             .and_return(resp)
         expect(s3.find_definition(id)).to eq(Definition.new(
           id: "test",
@@ -47,7 +47,7 @@ module Radicaster::RecRadiko
       it "uploads episode to s3" do
         expect(client).to receive(:put_object).with(hash_including(
           bucket: bucket,
-          key: "test/20210622.m4a",
+          key: "test/data/20210622.m4a",
         ))
         s3.save_episode(episode)
       end

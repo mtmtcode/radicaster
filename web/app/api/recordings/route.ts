@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     await s3Client.send(
       new PutObjectCommand({
         Bucket: bucketName,
-        Key: `${data.id}/radicaster.yaml`,
+        Key: `radicaster/${data.id}.yaml`,
         Body: yamlContent,
         ContentType: "application/x-yaml",
       })

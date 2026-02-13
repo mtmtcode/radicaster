@@ -8,7 +8,7 @@ module Radicaster::CLI
     def save_definition(def_)
       client.put_object(
         bucket: bucket,
-        key: "#{def_.id}/radicaster.yaml",
+        key: "radicaster/#{def_.id}.yaml",
         body: StringIO.new(def_.to_yaml),
       )
     end

@@ -24,7 +24,7 @@ module Radicaster::CLI
         expect(client).to receive(:put_object).with(
           satisfy do |arg|
             arg[:bucket] == "radicaster.test" &&
-            arg[:key] == "test/radicaster.yaml" &&
+            arg[:key] == "radicaster/test.yaml" &&
             arg[:body].read == "test yaml"
           end
         )
