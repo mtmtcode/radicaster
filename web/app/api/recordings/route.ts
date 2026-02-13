@@ -4,6 +4,7 @@ import { EventBridgeClient, PutRuleCommand, PutTargetsCommand, ListRulesCommand 
 import * as yaml from "js-yaml";
 import { z } from "zod";
 import { ExecutionSchedule } from "@/lib/radicaster/schedule";
+import { createRecording } from "@/lib/radicaster/actions";
 
 const s3Client = new S3Client({});
 const eventBridgeClient = new EventBridgeClient({});
@@ -174,91 +175,10 @@ export async function POST(req: NextRequest) {
     const body = JSON.parse(dataJson);
     const data = requestSchema.parse(body);
 
-    const bucketName = process.env.RADICASTER_S3_BUCKET;
-    const recRadikoArn = process.env.RADICASTER_REC_RADIKO_ARN;
-
-    if (!bucketName || !recRadikoArn) {
-      return NextResponse.json(
-        { error: "Server configuration error: Missing environment variables" },
-        { status: 500 }
-      );
-    }
-
-    // 1. Generate YAML
-    const executionSchedules = data.execution_schedule.map((s) => ExecutionSchedule.parse(s));
-
-    // Convert execution schedules to the format expected in YAML (e.g., "Mon 21:00:00")
-    const yamlContent = yaml.dump({
-      id: data.id,
-      title: data.title,
-      station: data.station,
-      area: data.area,
-      author: data.author,
-      // image: data.image, // Removed
-      duration: data.duration,
-      program_schedule: data.program_schedule,
-      execution_schedule: executionSchedules.map((s) => s.toYamlString()),
+    await createRecording({
+      ...data,
+      imageFile: imageFile || undefined
     });
-
-    // 2. Upload to S3
-    // Upload YAML
-    await s3Client.send(
-      new PutObjectCommand({
-        Bucket: bucketName,
-        Key: `radicaster/${data.id}.yaml`,
-        Body: yamlContent,
-        ContentType: "application/x-yaml",
-      })
-    );
-
-    // Upload Image if present
-    if (imageFile) {
-      const arrayBuffer = await imageFile.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-
-      let ext = "jpg";
-      if (imageFile.type === "image/png") ext = "png";
-      else if (imageFile.type === "image/jpeg") ext = "jpg";
-
-      await s3Client.send(
-        new PutObjectCommand({
-          Bucket: bucketName,
-          Key: `radicaster/${data.id}.${ext}`,
-          Body: buffer,
-          ContentType: imageFile.type,
-        })
-      );
-    }
-
-    // 3. Register EventBridge Rules
-    for (let i = 0; i < executionSchedules.length; i++) {
-      const schedule = executionSchedules[i];
-      const ruleName = `${data.id}_${i}`;
-      const cronExpression = schedule.toCron();
-
-      // Put Rule
-      await eventBridgeClient.send(
-        new PutRuleCommand({
-          Name: ruleName,
-          ScheduleExpression: cronExpression,
-          State: "ENABLED",
-        })
-      );
-
-      // Put Target
-      await eventBridgeClient.send(
-        new PutTargetsCommand({
-          Rule: ruleName,
-          Targets: [
-            {
-              Id: "rec-radiko",
-              Arn: recRadikoArn,
-              Input: JSON.stringify({ id: data.id }),
-            }
-          ]
-        })
-      );
-    }
 
     return NextResponse.json({ success: true, id: data.id });
   } catch (error: any) {

@@ -172,6 +172,12 @@ export default function RecordingsList() {
                         >
                           {triggeringId === recording.id ? "Triggering..." : "Record Now"}
                         </button>
+                        <Link
+                          href={`/recordings/${recording.id}`}
+                          className="mt-2 text-xs border rounded px-2 py-1 transition-colors mr-2 text-blue-600 hover:text-blue-900 border-blue-600 hover:bg-blue-50 flex items-center"
+                        >
+                          Edit
+                        </Link>
                         <button
                           onClick={(e) => {
                             e.preventDefault();

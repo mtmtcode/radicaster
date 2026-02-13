@@ -1,113 +1,103 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  S3Client,
-  DeleteObjectCommand
-} from "@aws-sdk/client-s3";
-import {
-  EventBridgeClient,
-  ListRulesCommand,
-  RemoveTargetsCommand,
-  DeleteRuleCommand
-} from "@aws-sdk/client-eventbridge";
+import { z } from "zod";
+import { getRecording, deleteRecording, createRecording } from "@/lib/radicaster/actions";
 
-const s3Client = new S3Client({});
-const eventBridgeClient = new EventBridgeClient({});
+const scheduleSchema = z.string().regex(/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s*([0-5]?[0-9]):([0-5]?[0-9])(?::([0-5]?[0-9]))?$/i);
+
+const requestSchema = z.object({
+  id: z.string().min(1).regex(/^[a-z0-9_-]+$/),
+  title: z.string().min(1),
+  author: z.string().min(1),
+  area: z.string().min(1),
+  station: z.string().min(1),
+  duration: z.number().min(1),
+  program_schedule: z.array(z.string().min(1)),
+  execution_schedule: z.array(scheduleSchema),
+});
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
+
+  try {
+    const data = await getRecording(id);
+    if (!data) {
+      return NextResponse.json({ error: "Recording not found" }, { status: 404 });
+    }
+    return NextResponse.json(data);
+  } catch (error: any) {
+    console.error(`Error fetching recording ${id}:`, error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
+
+  try {
+    const formData = await request.formData();
+    const dataJson = formData.get("data") as string;
+    const imageFile = formData.get("image") as File | null;
+
+    if (!dataJson) {
+      return NextResponse.json({ error: "Missing data" }, { status: 400 });
+    }
+
+    const body = JSON.parse(dataJson);
+    const data = requestSchema.parse(body);
+
+    if (data.id !== id) {
+      return NextResponse.json({ error: "ID mismatch" }, { status: 400 });
+    }
+
+    // Delete existing
+    const deleteErrors = await deleteRecording(id);
+    if (deleteErrors.length > 0) {
+      console.warn(`Delete errors for ${id} during update:`, deleteErrors);
+      // Continue anyway as we want to recreate
+    }
+
+    // Create new
+    await createRecording({
+      ...data,
+      imageFile: imageFile || undefined
+    });
+
+    return NextResponse.json({ success: true, id });
+
+  } catch (error: any) {
+    console.error(`Error updating recording ${id}:`, error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: "Validation error", details: (error as any).issues }, { status: 400 });
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-
   if (!id) {
     return NextResponse.json({ error: "Program ID is required" }, { status: 400 });
   }
 
-  const bucketName = process.env.RADICASTER_S3_BUCKET;
-  if (!bucketName) {
-    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
-  }
-
-  const errors: string[] = [];
-
-  // 1. Delete S3 Object
-  try {
-    await s3Client.send(
-      new DeleteObjectCommand({
-        Bucket: bucketName,
-        Key: `radicaster/${id}.yaml`,
-      })
-    );
-  } catch (error: any) {
-    console.error(`Failed to delete S3 object for ${id}:`, error);
-    // Continue cleanup even if S3 fails (might be already gone)
-  }
-
-  // 2. Delete EventBridge Rules
-  try {
-    const rulesToDelete: string[] = [];
-    let nextToken: string | undefined;
-
-    // List rules with prefix
-    // Note: ListRules NamePrefix is helpful but we must filter strictly for `${id}_Index` pattern
-    do {
-      const cmd: ListRulesCommand = new ListRulesCommand({
-        NamePrefix: `${id}_`,
-        Limit: 50,
-        NextToken: nextToken,
-      });
-      const response = await eventBridgeClient.send(cmd);
-
-      if (response.Rules) {
-        for (const rule of response.Rules) {
-          if (rule.Name && /^.+_\d+$/.test(rule.Name) && rule.Name.startsWith(`${id}_`)) {
-            rulesToDelete.push(rule.Name);
-          }
-        }
-      }
-      nextToken = response.NextToken;
-    } while (nextToken);
-
-    // Delete each rule
-    for (const ruleName of rulesToDelete) {
-      try {
-        // Remove targets first (required before deleting rule)
-        await eventBridgeClient.send(
-          new RemoveTargetsCommand({
-            Rule: ruleName,
-            Ids: ["rec-radiko"], // Assuming fixed target ID from creation logic
-          })
-        );
-      } catch (e) {
-        // Ignore checking if target exists, just proceed to delete rule
-        // or log it. If remove targets fails, delete rule will likely fail.
-        console.warn(`Failed to remove targets for ${ruleName}`, e);
-      }
-
-      try {
-        await eventBridgeClient.send(
-          new DeleteRuleCommand({
-            Name: ruleName,
-          })
-        );
-      } catch (e: any) {
-        console.error(`Failed to delete rule ${ruleName}:`, e);
-        errors.push(`Failed to delete rule ${ruleName}`);
-      }
-    }
-  } catch (error: any) {
-    console.error(`Failed to process EventBridge rules for ${id}:`, error);
-    errors.push(`EventBridge cleanup failed: ${error.message}`);
-  }
+  const errors = await deleteRecording(id);
 
   if (errors.length > 0) {
     return NextResponse.json({
       success: false,
       message: "Completed with errors",
       errors
-    }, { status: 200 }); // Return 200 but check errors, or 500?
-    // Let's use 200 with error details so UI can show warning if needed,
-    // but principally the "delete" action is "done" (we tried our best).
+    }, { status: 200 });
   }
 
   return NextResponse.json({ success: true, id });
