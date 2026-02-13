@@ -1,12 +1,13 @@
-import { Certificate } from '@aws-cdk/aws-certificatemanager';
-import { CachePolicy, Distribution, experimental, LambdaEdgeEventType, OriginAccessIdentity, ViewerProtocolPolicy } from '@aws-cdk/aws-cloudfront';
-import { S3Origin } from '@aws-cdk/aws-cloudfront-origins';
-import { CanonicalUserPrincipal, Effect, PolicyStatement, ServicePrincipal } from '@aws-cdk/aws-iam';
-import { Code, DockerImageCode, DockerImageFunction, Runtime } from '@aws-cdk/aws-lambda';
-import { S3EventSource } from '@aws-cdk/aws-lambda-event-sources';
-import { Bucket, EventType } from '@aws-cdk/aws-s3';
-import * as cdk from '@aws-cdk/core';
-import { CfnOutput, Duration } from '@aws-cdk/core';
+import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
+import { CachePolicy, Distribution, LambdaEdgeEventType, OriginAccessIdentity, ViewerProtocolPolicy, experimental } from 'aws-cdk-lib/aws-cloudfront';
+import { S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
+import { CanonicalUserPrincipal, Effect, PolicyStatement, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { Code, DockerImageCode, DockerImageFunction, Runtime } from 'aws-cdk-lib/aws-lambda';
+import { S3EventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
+import { Bucket, EventType } from 'aws-cdk-lib/aws-s3';
+import * as cdk from 'aws-cdk-lib';
+import { CfnOutput, Duration } from 'aws-cdk-lib';
+import { Construct } from 'constructs';
 import { readFileSync } from 'fs';
 import * as path from 'path';
 
@@ -22,7 +23,7 @@ interface Params {
 }
 
 export class RadicasterStack extends cdk.Stack {
-  constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     const params: Params = {
@@ -49,7 +50,7 @@ export class RadicasterStack extends cdk.Stack {
   }
 
   private setUpFuncRecRadiko(bucket: Bucket, params: Params) {
-    let recRadikoEnvironment
+    let recRadikoEnvironment: { [key: string]: string } = {};
     if (params.radikoMail && params.radikoPassword) {
       recRadikoEnvironment = {
         "RADICASTER_RADIKO_MAIL": params.radikoMail,
@@ -125,11 +126,12 @@ export class RadicasterStack extends cdk.Stack {
       .toString()
       .replace(/__BASIC_AUTH_USER__/, params.basicAuthUser)
       .replace(/__BASIC_AUTH_PASSWORD__/, params.basicAuthPassword);
+
+    // Use experimental.EdgeFunction from aws-cloudfront
     const fn = new experimental.EdgeFunction(this, 'basic-auth-func', {
       code: Code.fromInline(code),
       handler: "index.handler",
-      // NOTE: Node 14.x does not support inline code
-      runtime: Runtime.NODEJS_12_X,
+      runtime: Runtime.NODEJS_20_X,
       functionName: `radicaster-basic-auth${params.suffix}`,
       memorySize: 128,
     });
@@ -150,7 +152,7 @@ export class RadicasterStack extends cdk.Stack {
       certificate: certificate,
       domainNames: domainNames,
       defaultBehavior: {
-        origin: new S3Origin(bucket, {
+        origin: S3BucketOrigin.withOriginAccessIdentity(bucket, {
           originAccessIdentity: oai,
         }),
         edgeLambdas: [
