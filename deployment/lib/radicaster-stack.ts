@@ -41,6 +41,7 @@ export class RadicasterStack extends cdk.Stack {
     const dist = this.setUpCloudFront(bucket, params);
     this.setUpFuncRecRadiko(bucket, params);
     this.setUpFuncGenFeed(bucket, dist, params);
+    this.setUpFuncCleanupEpisodes(bucket, params);
   }
 
   private setUpS3Bucket(params: Params) {
@@ -119,6 +120,36 @@ export class RadicasterStack extends cdk.Stack {
       }
     ));
     return funcGenFeed;
+  }
+
+  private setUpFuncCleanupEpisodes(bucket: Bucket, params: Params) {
+    const funcCleanup = new DockerImageFunction(this, `func-cleanup-episodes`, {
+      code: DockerImageCode.fromImageAsset(
+        "../cleanup_episodes"
+      ),
+      functionName: `radicaster-cleanup-episodes${params.suffix}`,
+      timeout: Duration.minutes(1),
+      memorySize: 128,
+      environment: {
+        "RADICASTER_S3_BUCKET": params.bucketName,
+      }
+    });
+    if (!funcCleanup.role) {
+      throw new Error("funcCleanup.role is undefined");
+    }
+    bucket.grantRead(funcCleanup.role);
+    bucket.grantDelete(funcCleanup.role);
+
+    funcCleanup.addEventSource(new S3EventSource(
+      bucket,
+      {
+        events: [EventType.OBJECT_CREATED],
+        filters: [{
+          suffix: ".m4a"
+        }],
+      }
+    ));
+    return funcCleanup;
   }
 
   private setUpCloudFront(bucket: Bucket, params: Params) {

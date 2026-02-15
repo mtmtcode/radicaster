@@ -40,12 +40,16 @@ export default function NewRecordingPage() {
     // Transform form data to API payload
     const { imageFile, ...rest } = data;
 
-    const payload = {
+    const payload: Record<string, any> = {
       ...rest,
       program_schedule: data.schedules.map(s => `${s.startDay} ${s.startHour}:${s.startMinute}`),
       duration: data.schedules[0]?.durationMinutes,
       execution_schedule: data.schedules.map(s => calculateExecutionTime(s.startDay, s.startHour, s.startMinute, s.durationMinutes, s.offsetMinutes)),
     };
+    if (data.retentionType && data.retentionType !== "none") {
+      payload.retention_type = data.retentionType;
+      payload.retention_value = data.retentionValue;
+    }
 
     const formData = new FormData();
     formData.append("data", JSON.stringify(payload));

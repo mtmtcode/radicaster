@@ -29,6 +29,8 @@ export interface RecordingData {
   program_schedule: string[];
   execution_schedule: string[];
   imageFile?: File; // Optional for updates if not changing
+  retention_type?: "none" | "count" | "days";
+  retention_value?: number;
 }
 
 export type RecordingStatus = "healthy" | "s3_only" | "eventbridge_only" | "error";
@@ -164,7 +166,7 @@ export async function createRecording(data: RecordingData): Promise<void> {
   // 1. Generate YAML
   const executionSchedules = data.execution_schedule.map((s) => ExecutionSchedule.parse(s));
 
-  const yamlContent = yaml.dump({
+  const yamlObj: Record<string, any> = {
     id: data.id,
     title: data.title,
     station: data.station,
@@ -173,7 +175,14 @@ export async function createRecording(data: RecordingData): Promise<void> {
     duration: data.duration,
     program_schedule: data.program_schedule,
     execution_schedule: executionSchedules.map((s) => s.toYamlString()),
-  });
+  };
+
+  if (data.retention_type && data.retention_type !== "none" && data.retention_value) {
+    yamlObj.retention_type = data.retention_type;
+    yamlObj.retention_value = data.retention_value;
+  }
+
+  const yamlContent = yaml.dump(yamlObj);
 
   // 2. Upload to S3
   // Upload YAML

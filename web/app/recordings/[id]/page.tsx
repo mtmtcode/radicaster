@@ -117,6 +117,8 @@ export default function EditRecordingPage({ params }: { params: Promise<{ id: st
           area: yamlData.area || "",
           station: yamlData.station || "",
           schedules: schedules,
+          retentionType: yamlData.retention_type || "none",
+          retentionValue: yamlData.retention_value || undefined,
           // imageFile is skipped, user has to re-upload if they want
         });
 
@@ -135,7 +137,7 @@ export default function EditRecordingPage({ params }: { params: Promise<{ id: st
     const { imageFile, ...rest } = formData;
 
     // Recalculate execution times
-    const payload = {
+    const payload: Record<string, any> = {
       ...rest,
       id: id, // Ensure ID is from params, though form field is disabled
       program_schedule: formData.schedules.map(s => `${s.startDay} ${s.startHour}:${s.startMinute}`),
@@ -165,6 +167,10 @@ export default function EditRecordingPage({ params }: { params: Promise<{ id: st
         return `${newDay} ${newHour}:${newMinute}`;
       }),
     };
+    if (formData.retentionType && formData.retentionType !== "none") {
+      payload.retention_type = formData.retentionType;
+      payload.retention_value = formData.retentionValue;
+    }
 
     const apiFormData = new FormData();
     apiFormData.append("data", JSON.stringify(payload));
