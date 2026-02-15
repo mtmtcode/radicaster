@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { RecordingForm, FormValues } from "@/app/components/RecordingForm";
+import { MoreHorizontal, Trash2, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ScheduleYaml {
@@ -38,31 +39,7 @@ function calculateOffset(programTime: any, executionTime: any): number {
   const progTotal = programTime.hour * 60 + programTime.minute;
   const execTotal = executionTime.hour * 60 + executionTime.minute + (dayDiff * 24 * 60);
 
-  // execution = program + duration + offset
-  // But wait, execution time in YAML usually marks the START of recording?
-  // Let's check Rec-Radiko.
-  // Actually, in `RecordingForm`, `executionTime` calculation is:
-  // totalMinutesVal = totalCurrentMinutes + (duration || 0) + (offset || 0);
-  // So Execution Time is the time when recording ENDS? Or STARTS?
-  // Rec-Radiko usually takes "start time" and "duration".
-  // If `execution_schedule` is passed to EventBridge cron, and the target is `rec-radiko`,
-  // then `rec-radiko` is triggered at `execution_schedule`.
-  // If `rec-radiko` starts recording immediately, then `execution_schedule` is the recording START time.
-
-  // In `new/page.tsx`:
-  // calculateExecutionTime adds duration!
-  // `totalMinutesVal = totalCurrentMinutes + (duration || 0) + (offset || 0)`
-  // This implies `execution_schedule` = BroadCastStart + Duration + Offset.
-  // This means the recording starts AFTER the program ends?
-  // Yes, usually for time-free recording, you record after it's done.
-  // Radiko Time Free becomes available after broadcast.
-  // So Offset is "how many minutes after broadcast ENDs do we start recording".
-
-  // So: ExecutionTime = ProgramStart + Duration + Offset.
-  // Thus: Offset = ExecutionTime - (ProgramStart + Duration).
-
-  // However, I don't have Duration passed into this function yet.
-  return execTotal - progTotal; // This returns (Duration + Offset)
+  return execTotal - progTotal;
 }
 
 export default function EditRecordingPage({ params }: { params: Promise<{ id: string }> }) {
@@ -72,6 +49,55 @@ export default function EditRecordingPage({ params }: { params: Promise<{ id: st
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [triggeringId, setTriggeringId] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleTriggerRecording = async () => {
+    if (confirm(`Record "${id}" immediately?`)) {
+      setMenuOpen(false);
+      setTriggeringId(true);
+      try {
+        const res = await fetch(`/api/recordings/${id}/trigger`, { method: "POST" });
+        if (!res.ok) {
+          const json = await res.json();
+          throw new Error(json.error || "Failed to trigger");
+        }
+        alert(`Recording triggered for ${id}!`);
+      } catch (err: any) {
+        alert(`Error: ${err.message}`);
+      } finally {
+        setTriggeringId(false);
+      }
+    }
+  };
+
+  const handleDeleteRecording = async () => {
+    if (confirm(`Delete "${id}"? This will remove the schedule and definition.`)) {
+      setMenuOpen(false);
+      try {
+        const res = await fetch(`/api/recordings/${id}`, { method: "DELETE" });
+        if (!res.ok) {
+          const json = await res.json();
+          throw new Error(json.error || json.message || "Failed to delete");
+        }
+        router.push("/");
+      } catch (err: any) {
+        alert(`Error: ${err.message}`);
+      }
+    }
+  };
 
   useEffect(() => {
     async function fetchData() {
@@ -143,14 +169,6 @@ export default function EditRecordingPage({ params }: { params: Promise<{ id: st
       program_schedule: formData.schedules.map(s => `${s.startDay} ${s.startHour}:${s.startMinute}`),
       duration: formData.schedules[0]?.durationMinutes,
       execution_schedule: formData.schedules.map(s => {
-        // calculateExecutionTime is internal to component or need export
-        // I need to copy or import calculateExecutionTime logic.
-        // Since I haven't exported it from RecordingForm (it was inside the file but outside component),
-        // I will reimplement logic or assume form calculates it?
-        // No, form data has inputs. Backend expects `execution_schedule`.
-        // I reused logic in `new/page.tsx` for submission. 
-        // I should do same here.
-
         const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
         const dayIndex = DAYS.indexOf(s.startDay);
         const totalCurrentMinutes = parseInt(s.startHour || "0") * 60 + parseInt(s.startMinute || "0");
@@ -207,11 +225,46 @@ export default function EditRecordingPage({ params }: { params: Promise<{ id: st
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 text-black">
       <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Edit Recording</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Edit recording schedule. Changing details will delete and recreate the resources.
-          </p>
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Edit Recording</h1>
+            <p className="mt-2 text-sm text-gray-600">
+              Edit recording schedule. Changing details will delete and recreate the resources.
+            </p>
+          </div>
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="p-2 rounded-md border border-gray-200 text-gray-500 bg-white shadow-sm hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all"
+              aria-label="More actions"
+            >
+              <MoreHorizontal className="h-5 w-5" />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-10">
+                <div className="py-1">
+                  <button
+                    type="button"
+                    onClick={handleTriggerRecording}
+                    disabled={triggeringId}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <Mic className="h-4 w-4" />
+                    {triggeringId ? "Triggering..." : "Record Now"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeleteRecording}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {result && (
