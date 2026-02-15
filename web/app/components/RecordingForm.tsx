@@ -27,7 +27,12 @@ const formSchema = z.object({
   area: z.string().min(1, "Area ID is required"),
   station: z.string().min(1, "Station ID is required"),
   schedules: z.array(scheduleItemSchema).min(1, "At least one schedule is required"),
-});
+  retentionType: z.enum(["none", "count", "days"]).default("none"),
+  retentionValue: z.number().min(1, "Must be at least 1").optional(),
+}).refine(
+  (data) => data.retentionType === "none" || (data.retentionValue !== undefined && data.retentionValue >= 1),
+  { message: "Retention value is required when retention type is set", path: ["retentionValue"] }
+);
 
 export type FormValues = z.infer<typeof formSchema>;
 
@@ -72,6 +77,8 @@ export function RecordingForm({ initialValues, isEditing = false, onSubmit, isSu
     area: DEFAULT_AREA_ID,
     station: "",
     schedules: [{ startDay: "Mon", startHour: "21", startMinute: "00", durationMinutes: undefined as any, offsetMinutes: 5 }],
+    retentionType: "none",
+    retentionValue: undefined,
     ...initialValues,
   };
 
@@ -227,6 +234,8 @@ export function RecordingForm({ initialValues, isEditing = false, onSubmit, isSu
         )}
       </div>
 
+      <RetentionSettings control={control} register={register} errors={errors} />
+
       <div className="pt-4 border-t border-gray-200">
         <button
           type="submit"
@@ -247,6 +256,61 @@ interface ScheduleRowProps {
   remove: () => void;
   canRemove: boolean;
   errors: FieldErrors<FormValues>;
+}
+
+interface RetentionSettingsProps {
+  control: Control<FormValues>;
+  register: UseFormRegister<FormValues>;
+  errors: FieldErrors<FormValues>;
+}
+
+function RetentionSettings({ control, register, errors }: RetentionSettingsProps) {
+  const retentionType = useWatch({ control, name: "retentionType" });
+
+  return (
+    <div className="p-4 border rounded-md bg-gray-50">
+      <label className="block text-sm font-medium text-gray-700 mb-1">Retention Policy</label>
+      <p className="text-xs text-gray-500 mb-3">保持ポリシー: 古い録音データの自動削除設定</p>
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <div className="w-full sm:w-48">
+          <label className="block text-xs font-medium text-gray-500 mb-1">Type</label>
+          <p className="text-[10px] text-gray-400 mb-1">削除条件の種類</p>
+          <select
+            {...register("retentionType")}
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+          >
+            <option value="none">None (keep all)</option>
+            <option value="count">Keep last N episodes</option>
+            <option value="days">Keep last N days</option>
+          </select>
+        </div>
+
+        {retentionType !== "none" && (
+          <div className="w-full sm:w-36">
+            <label className="block text-xs font-medium text-gray-500 mb-1">
+              {retentionType === "count" ? "Episodes to keep" : "Days to keep"}
+            </label>
+            <p className="text-[10px] text-gray-400 mb-1">
+              {retentionType === "count" ? "保持する回数" : "保持する日数"}
+            </p>
+            <input
+              type="number"
+              min={1}
+              {...register("retentionValue", { valueAsNumber: true })}
+              className={cn(
+                "block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border",
+                errors.retentionValue && "border-red-500"
+              )}
+              placeholder={retentionType === "count" ? "e.g. 10" : "e.g. 30"}
+            />
+            {errors.retentionValue && (
+              <p className="mt-1 text-xs text-red-600">{errors.retentionValue.message}</p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function ScheduleRow({ index, control, register, remove, canRemove, errors }: ScheduleRowProps) {

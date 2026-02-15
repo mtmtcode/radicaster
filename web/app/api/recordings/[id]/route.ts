@@ -13,6 +13,8 @@ const requestSchema = z.object({
   duration: z.number().min(1),
   program_schedule: z.array(z.string().min(1)),
   execution_schedule: z.array(scheduleSchema),
+  retention_type: z.enum(["none", "count", "days"]).optional(),
+  retention_value: z.number().min(1).optional(),
 });
 
 export async function GET(
