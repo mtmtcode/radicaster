@@ -3,7 +3,7 @@
 import { useFieldArray, useForm, Controller, useWatch, Control, FieldErrors, UseFormRegister } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Clock, MapPin, Radio, User, FileText, Image as ImageIcon, Save, Fingerprint } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { BroadcastSchedulePicker } from "@/app/components/BroadcastSchedulePicker";
 import { RADIKO_AREAS, RADIKO_STATIONS, DEFAULT_AREA_ID } from "@/app/constants/radiko";
@@ -14,34 +14,34 @@ const scheduleItemSchema = z.object({
   startDay: z.string(),
   startHour: z.string(),
   startMinute: z.string(),
-  durationMinutes: z.number().min(1, "Duration must be at least 1 minute"),
-  offsetMinutes: z.number().min(0, "Offset must be at least 0 minutes").default(5),
+  durationMinutes: z.number({ invalid_type_error: "時間を入力してください" }).min(1, "1分以上で指定してください"),
+  offsetMinutes: z.number().min(0).default(5),
 });
 
 const formSchema = z.object({
-  id: z.string().min(1, "ID is required").regex(/^[a-z0-9_-]+$/, "ID must be lowercase alphanumeric, dash, or underscore"),
-  title: z.string().min(1, "Title is required"),
-  author: z.string().min(1, "Author is required"),
-  // imageFile is optional in schema, created as needed
+  id: z.string().min(1, "IDは必須です").regex(/^[a-z0-9_-]+$/, "半角英数字、ハイフン、アンダースコアのみ使用可能です"),
+  title: z.string().min(1, "タイトルは必須です"),
+  author: z.string().min(1, "作者名は必須です"),
   imageFile: z.any().optional(),
-  area: z.string().min(1, "Area ID is required"),
-  station: z.string().min(1, "Station ID is required"),
-  schedules: z.array(scheduleItemSchema).min(1, "At least one schedule is required"),
+  area: z.string().min(1, "エリアを選択してください"),
+  station: z.string().min(1, "放送局を選択してください"),
+  schedules: z.array(scheduleItemSchema).min(1, "スケジュールを1つ以上登録してください"),
   retentionType: z.enum(["none", "count", "days"]).default("none"),
-  retentionValue: z.number().min(1, "Must be at least 1").optional(),
+  retentionValue: z.number().min(1, "1以上を指定してください").optional(),
 }).refine(
   (data) => data.retentionType === "none" || (data.retentionValue !== undefined && data.retentionValue >= 1),
-  { message: "Retention value is required when retention type is set", path: ["retentionValue"] }
+  { message: "保持数を入力してください", path: ["retentionValue"] }
 );
 
 export type FormValues = z.infer<typeof formSchema>;
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DAYS_JA = { "Mon": "月", "Tue": "火", "Wed": "水", "Thu": "木", "Fri": "金", "Sat": "土", "Sun": "日" };
 
 // Helper to calculate execution time
 function calculateExecutionTime(day: string, hour: string, minute: string, duration: number, offset: number) {
   const dayIndex = DAYS.indexOf(day);
-  if (dayIndex === -1) return "Invalid Day";
+  if (dayIndex === -1) return "---";
 
   const totalCurrentMinutes = parseInt(hour || "0") * 60 + parseInt(minute || "0");
   const totalMinutesVal = totalCurrentMinutes + (duration || 0) + (offset || 0);
@@ -58,7 +58,7 @@ function calculateExecutionTime(day: string, hour: string, minute: string, durat
   const newMinute = (totalMinutes % 60).toString().padStart(2, "0");
   const newDay = DAYS[newDayIndex];
 
-  return `${newDay} ${newHour}:${newMinute}`;
+  return `${DAYS_JA[newDay as keyof typeof DAYS_JA] || newDay} ${newHour}:${newMinute}`;
 }
 
 interface RecordingFormProps {
@@ -89,13 +89,9 @@ export function RecordingForm({ initialValues, isEditing = false, onSubmit, isSu
 
   const { register, control, handleSubmit, formState: { errors }, reset } = form;
 
-  // Reset form when initialValues change
   useEffect(() => {
     if (initialValues) {
-      reset({
-        ...defaultValues,
-        ...initialValues
-      });
+      reset({ ...defaultValues, ...initialValues });
     }
   }, [initialValues, reset]);
 
@@ -111,103 +107,158 @@ export function RecordingForm({ initialValues, isEditing = false, onSubmit, isSu
   }, [selectedArea]);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <div>
-          <label htmlFor="id" className="block text-sm font-medium text-gray-700">ID</label>
-          <p className="text-xs text-gray-500 mb-1">番組ID: 番組を一意に識別する文字列</p>
-          <input
-            type="text"
-            id="id"
-            {...register("id")}
-            disabled={isEditing}
-            className={cn(
-              "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border",
-              errors.id && "border-red-500",
-              isEditing && "bg-gray-100 text-gray-500 cursor-not-allowed"
-            )}
-            placeholder="my-radio-program"
-          />
-          {errors.id && <p className="mt-1 text-sm text-red-600">{errors.id.message}</p>}
-        </div>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
+      {/* Basic Info Section */}
+      <section className="space-y-6">
+        <h3 className="text-lg font-bold text-slate-700 flex items-center gap-2 border-b border-gray-100 pb-2">
+          <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">
+            <FileText className="w-5 h-5" />
+          </span>
+          基本情報
+        </h3>
 
-        <div>
-          <label htmlFor="area" className="block text-sm font-medium text-gray-700">Area</label>
-          <p className="text-xs text-gray-500 mb-1">エリア: 録音対象のradikoのエリア</p>
-          <select
-            id="area"
-            {...register("area")}
-            className={cn("mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border", errors.area && "border-red-500")}
-          >
-            {RADIKO_AREAS.map((area) => (
-              <option key={area.id} value={area.id}>
-                {area.name} ({area.id})
-              </option>
-            ))}
-          </select>
-          {errors.area && <p className="mt-1 text-sm text-red-600">{errors.area.message}</p>}
-        </div>
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <div className="group">
+            <label htmlFor="id" className="flex items-center gap-1.5 text-sm font-bold text-gray-700 mb-2">
+              <Fingerprint className="h-4 w-4 text-gray-400" />
+              ID
+            </label>
+            <input
+              type="text"
+              id="id"
+              {...register("id")}
+              disabled={isEditing}
+              className={cn(
+                "block w-full rounded-2xl border-2 border-gray-200 bg-gray-50/50 shadow-sm focus:border-gray-400 focus:ring focus:ring-gray-200 sm:text-sm p-4 transition-all outline-none",
+                errors.id && "border-red-300 focus:border-red-500 focus:ring-red-200",
+                isEditing && "bg-gray-100 text-gray-500 cursor-not-allowed border-transparent"
+              )}
+              placeholder="program-id-example"
+            />
+            {errors.id && <p className="mt-1 text-xs font-bold text-red-500">{errors.id.message}</p>}
+          </div>
 
-        <div>
-          <label htmlFor="station" className="block text-sm font-medium text-gray-700">Station</label>
-          <p className="text-xs text-gray-500 mb-1">放送局: 録音対象の放送局</p>
-          <select
-            id="station"
-            {...register("station")}
-            className={cn("mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border", errors.station && "border-red-500")}
-          >
-            <option value="">Select a station</option>
-            {filteredStations.map((station) => (
-              <option key={station.id} value={station.id}>
-                {station.name} ({station.id})
-              </option>
-            ))}
-          </select>
-          {errors.station && <p className="mt-1 text-sm text-red-600">{errors.station.message}</p>}
-        </div>
+          <div className="group">
+            <label htmlFor="title" className="flex items-center gap-1.5 text-sm font-bold text-gray-700 mb-2">
+              <TypeIcon className="h-4 w-4 text-gray-400" />
+              番組タイトル
+            </label>
+            <input
+              type="text"
+              id="title"
+              {...register("title")}
+              className={cn(
+                "block w-full rounded-2xl border-2 border-gray-200 bg-gray-50/50 shadow-sm focus:border-gray-400 focus:ring focus:ring-gray-200 sm:text-sm p-4 transition-all outline-none",
+                errors.title && "border-red-300 focus:border-red-500 focus:ring-red-200"
+              )}
+              placeholder="素敵なラジオ番組"
+            />
+            {errors.title && <p className="mt-1 text-xs font-bold text-red-500">{errors.title.message}</p>}
+          </div>
 
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
-          <p className="text-xs text-gray-500 mb-1">番組名: 生成されるPodcastフィードの番組名</p>
-          <input
-            type="text"
-            id="title"
-            {...register("title")}
-            className={cn("mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border", errors.title && "border-red-500")}
-            placeholder="Program Title"
-          />
-          {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>}
-        </div>
+          <div className="group">
+            <label htmlFor="author" className="flex items-center gap-1.5 text-sm font-bold text-gray-700 mb-2">
+              <User className="h-4 w-4 text-gray-400" />
+              配信者 (Author)
+            </label>
+            <input
+              type="text"
+              id="author"
+              {...register("author")}
+              className={cn(
+                "block w-full rounded-2xl border-2 border-gray-200 bg-gray-50/50 shadow-sm focus:border-gray-400 focus:ring focus:ring-gray-200 sm:text-sm p-4 transition-all outline-none",
+                errors.author && "border-red-300 focus:border-red-500 focus:ring-red-200"
+              )}
+              placeholder="放送局名など"
+            />
+            {errors.author && <p className="mt-1 text-xs font-bold text-red-500">{errors.author.message}</p>}
+          </div>
 
-        <div>
-          <label htmlFor="author" className="block text-sm font-medium text-gray-700">Author</label>
-          <p className="text-xs text-gray-500 mb-1">作者: 生成されるPodcastの作者フィールド</p>
-          <input
-            type="text"
-            id="author"
-            {...register("author")}
-            className={cn("mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border", errors.author && "border-red-500")}
-            placeholder="Broadcaster Name"
-          />
-          {errors.author && <p className="mt-1 text-sm text-red-600">{errors.author.message}</p>}
+          <div className="group">
+            <label htmlFor="imageFile" className="flex items-center gap-1.5 text-sm font-bold text-gray-700 mb-2">
+              <ImageIcon className="h-4 w-4 text-gray-400" />
+              アートワーク
+            </label>
+            <input
+              type="file"
+              id="imageFile"
+              accept="image/jpeg,image/png"
+              {...register("imageFile")}
+              className={cn(
+                "block w-full rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/50 text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-600 hover:file:bg-gray-200 p-2 cursor-pointer transition-colors hover:border-gray-300",
+                errors.imageFile && "border-red-300"
+              )}
+            />
+            {errors.imageFile && <p className="mt-1 text-xs font-bold text-red-500">{String(errors.imageFile.message)}</p>}
+          </div>
         </div>
+      </section>
 
-        <div className="sm:col-span-2">
-          <label htmlFor="imageFile" className="block text-sm font-medium text-gray-700">Artwork Image</label>
-          <p className="text-xs text-gray-500 mb-1">画像: Podcastのアートワーク (JPEG/PNG)</p>
-          <input
-            type="file"
-            id="imageFile"
-            accept="image/jpeg,image/png"
-            {...register("imageFile")}
-            className={cn("mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100", errors.imageFile && "border-red-500")}
-          />
-          {errors.imageFile && <p className="mt-1 text-sm text-red-600">{String(errors.imageFile.message)}</p>}
+      {/* Station Section */}
+      <section className="space-y-6">
+        <h3 className="text-lg font-bold text-slate-700 flex items-center gap-2 border-b border-gray-100 pb-2">
+          <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">
+            <Radio className="w-5 h-5" />
+          </span>
+          放送局設定
+        </h3>
+
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <div className="group">
+            <label htmlFor="area" className="flex items-center gap-1.5 text-sm font-bold text-gray-700 mb-2">
+              <MapPin className="h-4 w-4 text-gray-400" />
+              エリア
+            </label>
+            <div className="relative">
+              <select
+                id="area"
+                {...register("area")}
+                className={cn("block w-full rounded-2xl border-2 border-gray-200 bg-gray-50/50 shadow-sm focus:border-gray-400 focus:ring focus:ring-gray-200 sm:text-sm p-4 transition-all outline-none appearance-none", errors.area && "border-red-300")}
+              >
+                {RADIKO_AREAS.map((area) => (
+                  <option key={area.id} value={area.id}>{area.name}</option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="group">
+            <label htmlFor="station" className="flex items-center gap-1.5 text-sm font-bold text-gray-700 mb-2">
+              <Radio className="h-4 w-4 text-gray-400" />
+              放送局
+            </label>
+            <div className="relative">
+              <select
+                id="station"
+                {...register("station")}
+                className={cn("block w-full rounded-2xl border-2 border-gray-200 bg-gray-50/50 shadow-sm focus:border-gray-400 focus:ring focus:ring-gray-200 sm:text-sm p-4 transition-all outline-none appearance-none", errors.station && "border-red-300")}
+              >
+                <option value="">放送局を選択してください</option>
+                {filteredStations.map((station) => (
+                  <option key={station.id} value={station.id}>{station.name}</option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
+              </div>
+            </div>
+            {errors.station && <p className="mt-1 text-xs font-bold text-red-500">{errors.station.message}</p>}
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-4">Schedules, Duration and Recording Offset</label>
+      {/* Schedule Section */}
+      <section className="space-y-6">
+        <h3 className="text-lg font-bold text-slate-700 flex items-center gap-2 border-b border-gray-100 pb-2">
+          <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">
+            <Clock className="w-5 h-5" />
+          </span>
+          録音スケジュール
+        </h3>
+
         <div className="space-y-4">
           {fields.map((field, index) => (
             <ScheduleRow
@@ -224,30 +275,40 @@ export function RecordingForm({ initialValues, isEditing = false, onSubmit, isSu
           <button
             type="button"
             onClick={() => append({ startDay: "Mon", startHour: "21", startMinute: "00", durationMinutes: undefined as any, offsetMinutes: 5 })}
-            className="mt-2 inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="mt-2 inline-flex items-center px-5 py-3 border-2 border-dashed border-gray-300 text-sm font-bold rounded-2xl text-gray-500 hover:bg-gray-50 hover:border-gray-400 transition-colors focus:outline-none"
           >
-            <Plus className="h-4 w-4 mr-1" /> Add Schedule
+            <Plus className="h-5 w-5 mr-2" /> スケジュールを追加
           </button>
         </div>
         {errors.schedules && (
-          <p className="mt-1 text-sm text-red-600">{errors.schedules.message}</p>
+          <p className="mt-1 text-sm font-bold text-red-500">{errors.schedules.message}</p>
         )}
-      </div>
+      </section>
 
       <RetentionSettings control={control} register={register} errors={errors} />
 
-      <div className="pt-4 border-t border-gray-200">
+      <div className="pt-8">
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+          className="pop-button w-full flex justify-center py-4 px-6 border border-transparent rounded-2xl shadow-lg shadow-primary/30 text-base font-bold text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-4 focus:ring-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? "Saving..." : isEditing ? "Update Recording Schedule" : "Save Recording Schedule"}
+          {isSubmitting ? (
+            <span className="flex items-center"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" /> 保存中...</span>
+          ) : (
+            <span className="flex items-center"><Save className="w-5 h-5 mr-2" /> 設定を保存する</span>
+          )}
         </button>
       </div>
     </form>
   );
 }
+
+// Icon component needed for fields
+function TypeIcon({ className }: { className?: string }) {
+  return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" x2="15" y1="20" y2="20" /><line x1="12" x2="12" y1="4" y2="20" /></svg>
+}
+
 
 interface ScheduleRowProps {
   index: number;
@@ -268,43 +329,48 @@ function RetentionSettings({ control, register, errors }: RetentionSettingsProps
   const retentionType = useWatch({ control, name: "retentionType" });
 
   return (
-    <div className="p-4 border rounded-md bg-gray-50">
-      <label className="block text-sm font-medium text-gray-700 mb-1">Retention Policy</label>
-      <p className="text-xs text-gray-500 mb-3">保持ポリシー: 古い録音データの自動削除設定</p>
+    <div className="p-6 border-2 border-gray-100 rounded-2xl bg-white space-y-4">
+      <h4 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+        <Trash2 className="w-4 h-4 text-gray-600" />
+        自動削除 (保持ポリシー)
+      </h4>
+
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-        <div className="w-full sm:w-48">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Type</label>
-          <p className="text-[10px] text-gray-400 mb-1">削除条件の種類</p>
-          <select
-            {...register("retentionType")}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
-          >
-            <option value="none">None (keep all)</option>
-            <option value="count">Keep last N episodes</option>
-            <option value="days">Keep last N days</option>
-          </select>
+        <div className="w-full sm:w-1/3">
+          <div className="relative">
+            <select
+              {...register("retentionType")}
+              className="block w-full rounded-2xl border-gray-200 bg-gray-50/50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-4 outline-none appearance-none"
+            >
+              <option value="none">自動削除しない (全て保存)</option>
+              <option value="count">最新 N 件のみ保持</option>
+              <option value="days">最新 N 日分のみ保持</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+              <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
+            </div>
+          </div>
         </div>
 
         {retentionType !== "none" && (
-          <div className="w-full sm:w-36">
-            <label className="block text-xs font-medium text-gray-500 mb-1">
-              {retentionType === "count" ? "Episodes to keep" : "Days to keep"}
-            </label>
-            <p className="text-[10px] text-gray-400 mb-1">
-              {retentionType === "count" ? "保持する回数" : "保持する日数"}
-            </p>
-            <input
-              type="number"
-              min={1}
-              {...register("retentionValue", { valueAsNumber: true })}
-              className={cn(
-                "block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border",
-                errors.retentionValue && "border-red-500"
-              )}
-              placeholder={retentionType === "count" ? "e.g. 10" : "e.g. 30"}
-            />
+          <div className="w-full sm:w-1/4 animate-in fade-in slide-in-from-left-2 duration-300">
+            <div className="relative">
+              <input
+                type="number"
+                min={1}
+                {...register("retentionValue", { valueAsNumber: true })}
+                className={cn(
+                  "block w-full rounded-2xl border-gray-200 bg-gray-50/50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-4 outline-none",
+                  errors.retentionValue && "border-red-300 bg-red-50"
+                )}
+                placeholder="10"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-bold pointer-events-none">
+                {retentionType === 'count' ? '件' : '日'}
+              </span>
+            </div>
             {errors.retentionValue && (
-              <p className="mt-1 text-xs text-red-600">{errors.retentionValue.message}</p>
+              <p className="mt-1 text-xs font-bold text-red-500">{errors.retentionValue.message}</p>
             )}
           </div>
         )}
@@ -323,66 +389,68 @@ function ScheduleRow({ index, control, register, remove, canRemove, errors }: Sc
   const executionTime = calculateExecutionTime(watchStartDay, watchStartHour, watchStartMinute, watchDuration, watchOffset || 0);
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4 p-4 border rounded-md bg-gray-50 items-start sm:items-center">
-      <div className="flex-1">
-        <label className="block text-xs font-medium text-gray-500 mb-1">Broadcast Start Time</label>
-        <p className="text-[10px] text-gray-400 mb-1">番組の放送開始日時</p>
-        <Controller
-          control={control}
-          name={`schedules.${index}`}
-          render={({ field: { value, onChange } }) => (
-            <BroadcastSchedulePicker
-              value={`${value.startDay} ${value.startHour}:${value.startMinute}`}
-              onChange={(newVal) => {
-                const [day, time] = newVal.split(" ");
-                const [hour, minute] = time.split(":");
-                onChange({ ...value, startDay: day, startHour: hour, startMinute: minute });
-              }}
-            />
-          )}
-        />
-      </div>
-
-      <div className="w-full sm:w-28">
-        <label className="block text-xs font-medium text-gray-500 mb-1">Duration (min)</label>
-        <p className="text-[10px] text-gray-400 mb-1">番組の長さ（分）</p>
-        <input
-          type="number"
-          {...register(`schedules.${index}.durationMinutes`, { valueAsNumber: true })}
-          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
-        />
-        {errors.schedules?.[index]?.durationMinutes && (
-          <p className="mt-1 text-xs text-red-600">{errors.schedules[index]?.durationMinutes?.message}</p>
-        )}
-      </div>
-
-      <div className="w-full sm:w-28">
-        <label className="block text-xs font-medium text-gray-500 mb-1">Offset (min)</label>
-        <p className="text-[10px] text-gray-400 mb-1">終了から録音までの分数</p>
-        <input
-          type="number"
-          {...register(`schedules.${index}.offsetMinutes`, { valueAsNumber: true })}
-          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
-        />
-        {errors.schedules?.[index]?.offsetMinutes && (
-          <p className="mt-1 text-xs text-red-600">{errors.schedules[index]?.offsetMinutes?.message}</p>
-        )}
-      </div>
-
-      <div className="flex-1 sm:text-right">
-        <label className="block text-xs font-medium text-gray-500 mb-1">Execution Time</label>
-        <p className="text-[10px] text-gray-400 mb-1">実際の録音開始日時</p>
-        <div className="text-sm font-semibold text-gray-900">{executionTime}</div>
-      </div>
-
+    <div className="pop-card bg-white p-6 border-2 border-gray-100 relative group rounded-2xl">
       <button
         type="button"
         onClick={remove}
-        className="p-2 text-gray-400 hover:text-red-500 mt-2 sm:mt-0"
+        className="absolute top-2 right-2 p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-0"
         disabled={!canRemove}
       >
-        <Trash2 className="h-5 w-5" />
+        <Trash2 className="h-4 w-4" />
       </button>
+
+      <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-end">
+        {/* Broadcast Time */}
+        <div className="sm:col-span-5 space-y-1">
+          <label className="text-xs font-bold text-gray-500">放送開始日時</label>
+          <Controller
+            control={control}
+            name={`schedules.${index}`}
+            render={({ field: { value, onChange } }) => (
+              <BroadcastSchedulePicker
+                value={`${value.startDay} ${value.startHour}:${value.startMinute}`}
+                onChange={(newVal) => {
+                  const [day, time] = newVal.split(" ");
+                  const [hour, minute] = time.split(":");
+                  onChange({ ...value, startDay: day, startHour: hour, startMinute: minute });
+                }}
+              />
+            )}
+          />
+        </div>
+
+        {/* Duration */}
+        <div className="sm:col-span-2 space-y-1">
+          <label className="text-xs font-bold text-gray-500">長さ (分)</label>
+          <input
+            type="number"
+            {...register(`schedules.${index}.durationMinutes`, { valueAsNumber: true })}
+            className="block w-full rounded-2xl border-gray-200 bg-gray-50 shadow-sm focus:border-primary focus:ring-primary/20 sm:text-sm p-3 outline-none text-center font-bold"
+            placeholder="120"
+          />
+        </div>
+
+        {/* Offset */}
+        <div className="sm:col-span-2 space-y-1">
+          <label className="text-xs font-bold text-gray-500">遅延 (分)</label>
+          <input
+            type="number"
+            {...register(`schedules.${index}.offsetMinutes`, { valueAsNumber: true })}
+            className="block w-full rounded-2xl border-gray-200 bg-gray-50 shadow-sm focus:border-primary focus:ring-primary/20 sm:text-sm p-3 outline-none text-center text-gray-500"
+            placeholder="5"
+          />
+        </div>
+
+        {/* Execution Time Preview */}
+        <div className="sm:col-span-3 pb-2 text-right sm:text-center">
+          <span className="block text-[10px] font-bold text-gray-400 mb-0.5">実際の録音開始</span>
+          <span className="text-sm font-black text-primary bg-primary/5 px-2 py-1 rounded-md">{executionTime}</span>
+        </div>
+      </div>
+
+      {errors.schedules?.[index]?.durationMinutes && (
+        <p className="mt-2 text-xs font-bold text-red-500 text-center">{errors.schedules[index]?.durationMinutes?.message}</p>
+      )}
     </div>
   );
 }

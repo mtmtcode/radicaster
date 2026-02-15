@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { RecordingForm, FormValues } from "@/app/components/RecordingForm";
+import { ChevronLeft } from "lucide-react";
+import Link from "next/link";
 
 function calculateExecutionTime(day: string, hour: string, minute: string, duration: number, offset: number) {
   const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -81,18 +83,18 @@ export default function NewRecordingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 text-black">
-      <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Radicaster Recording Scheduler</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Create a new recording schedule definition. This will generate a YAML file, upload it to S3, and register EventBridge rules.
-          </p>
-        </div>
+    <div className="max-w-3xl mx-auto py-4">
+      <div className="mb-4 flex items-center gap-2">
+        <Link href="/" className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors">
+          <ChevronLeft className="h-5 w-5" />
+        </Link>
+      </div>
 
+      <div className="bg-white rounded-3xl p-8 shadow-xl shadow-gray-200/50 border border-gray-100">
         {result && (
-          <div className={cn("p-4 mb-6 rounded-md", result.success ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800")}>
-            {result.message}
+          <div className={cn("p-4 mb-6 rounded-2xl border", result.success ? "bg-green-50 border-green-100 text-green-700" : "bg-red-50 border-red-100 text-red-700")}>
+            <p className="font-bold text-sm">{result.success ? "Success" : "Error"}</p>
+            <p className="text-sm">{result.message}</p>
           </div>
         )}
 

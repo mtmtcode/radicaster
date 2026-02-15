@@ -1,26 +1,67 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Pop & Minimal Color Palette */
+  --background: #f3f6f9;
+  /* Low saturation bluish gray */
+  --foreground: #475569;
+  /* Slate 600 - Softer than black */
+
+  --primary: #5f98bd;
+  /* Vibrant Purple */
+  --primary-foreground: #ffffff;
+
+  --secondary: #fab1a0;
+  /* Soft Peach/Salmon */
+  --secondary-foreground: #2d3436;
+
+  --accent: #00cec9;
+  /* Robot Teal */
+  --accent-foreground: #ffffff;
+
+  --muted: #dfe6e9;
+  --muted-foreground: #636e72;
+
+  --card: #ffffff;
+  --card-foreground: #2d3436;
+
+  --border: #e2e8f0;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-m-plus-rounded), "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+/* Custom Utilities for "Pop" effect */
+.pop-shadow {
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.1);
+}
+
+.pop-card {
+  @apply bg-card rounded-2xl border-2 border-transparent hover:border-accent transition-all duration-300;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+}
+
+.pop-button {
+  @apply transform transition-transform active:scale-95 duration-100;
 }

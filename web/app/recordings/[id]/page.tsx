@@ -2,8 +2,9 @@
 
 import { useEffect, useState, use, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { RecordingForm, FormValues } from "@/app/components/RecordingForm";
-import { MoreHorizontal, Trash2, Mic } from "lucide-react";
+import { MoreHorizontal, Trash2, Mic, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ScheduleYaml {
@@ -223,50 +224,50 @@ export default function EditRecordingPage({ params }: { params: Promise<{ id: st
   if (!data) return <div className="p-8">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 text-black">
-      <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow">
-        <div className="flex items-start justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Edit Recording</h1>
-            <p className="mt-2 text-sm text-gray-600">
-              Edit recording schedule. Changing details will delete and recreate the resources.
-            </p>
-          </div>
-          <div className="relative" ref={menuRef}>
-            <button
-              type="button"
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="p-2 rounded-md border border-gray-200 text-gray-500 bg-white shadow-sm hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all"
-              aria-label="More actions"
-            >
-              <MoreHorizontal className="h-5 w-5" />
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-10">
-                <div className="py-1">
-                  <button
-                    type="button"
-                    onClick={handleTriggerRecording}
-                    disabled={triggeringId}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50"
-                  >
-                    <Mic className="h-4 w-4" />
-                    {triggeringId ? "Triggering..." : "Record Now"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDeleteRecording}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+    <div className="max-w-3xl mx-auto py-4 text-black">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Link href="/" className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors">
+            <ChevronLeft className="h-5 w-5" />
+          </Link>
         </div>
 
+        <div className="relative" ref={menuRef}>
+          <button
+            type="button"
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors focus:outline-none"
+            aria-label="More actions"
+          >
+            <MoreHorizontal className="h-5 w-5" />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-10">
+              <div className="py-1">
+                <button
+                  type="button"
+                  onClick={handleTriggerRecording}
+                  disabled={triggeringId}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Mic className="h-4 w-4" />
+                  {triggeringId ? "Triggering..." : "今すぐ録音する"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteRecording}
+                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  削除
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-3xl p-8 shadow-xl shadow-gray-200/50 border border-gray-100">
         {result && (
           <div className={cn("p-4 mb-6 rounded-md", result.success ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800")}>
             {result.message}
