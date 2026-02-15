@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, CheckCircle, XCircle, AlertTriangle, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Plus, XCircle } from "lucide-react";
 
 interface Recording {
   id: string;
@@ -18,41 +17,6 @@ export default function RecordingsList() {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [triggeringId, setTriggeringId] = useState<string | null>(null);
-
-  const handleTriggerRecording = async (id: string) => {
-    if (confirm(`Are you sure you want to trigger recording for ${id} immediately?`)) {
-      setTriggeringId(id);
-      try {
-        const res = await fetch(`/api/recordings/${id}/trigger`, { method: "POST" });
-        if (!res.ok) {
-          const json = await res.json();
-          throw new Error(json.error || "Failed to trigger");
-        }
-        alert(`Recording triggered for ${id}!`);
-      } catch (err: any) {
-        alert(`Error: ${err.message}`);
-      } finally {
-        setTriggeringId(null);
-      }
-    }
-  };
-
-  const handleDeleteRecording = async (id: string) => {
-    if (confirm(`Are you sure you want to delete recording ${id}? This will remove the schedule and definition.`)) {
-      try {
-        const res = await fetch(`/api/recordings/${id}`, { method: "DELETE" });
-        if (!res.ok) {
-          const json = await res.json();
-          throw new Error(json.error || json.message || "Failed to delete");
-        }
-        // Remove from list
-        setRecordings((prev) => prev.filter((r) => r.id !== id));
-      } catch (err: any) {
-        alert(`Error: ${err.message}`);
-      }
-    }
-  };
 
   useEffect(() => {
     async function fetchRecordings() {
@@ -120,77 +84,29 @@ export default function RecordingsList() {
             <ul className="divide-y divide-gray-200">
               {recordings.map((recording) => (
                 <li key={recording.id}>
-                  <div className="px-4 py-4 sm:px-6 hover:bg-gray-50 flex items-center justify-between">
-                    <div className="flex items-center flex-1 min-w-0">
-                      <div className="flex-shrink-0 mr-4">
-                        {recording.imageUrl ? (
-                          <img
-                            src={recording.imageUrl}
-                            alt={recording.title || recording.id}
-                            className="h-32 w-32 rounded object-cover"
-                          />
-                        ) : (
-                          <div className="h-32 w-32 rounded bg-gray-200 flex items-center justify-center">
-                            {recording.status === "healthy" ? (
-                              <CheckCircle className="h-12 w-12 text-green-500" />
-                            ) : recording.status === "s3_only" ? (
-                              <div title="Missing EventBridge Rule">
-                                <AlertTriangle className="h-12 w-12 text-yellow-500" />
-                              </div>
-                            ) : (
-                              <div title="Missing S3 Definition">
-                                <AlertTriangle className="h-12 w-12 text-red-500" />
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-indigo-600 truncate">{recording.title || recording.id}</p>
-                        <p className="text-sm text-gray-500 truncate">{recording.id}</p>
-                      </div>
+                  <Link
+                    href={`/recordings/${recording.id}`}
+                    className="px-4 py-4 sm:px-6 hover:bg-gray-50 flex items-center"
+                  >
+                    <div className="flex-shrink-0 mr-4">
+                      {recording.imageUrl ? (
+                        <img
+                          src={recording.imageUrl}
+                          alt={recording.title || recording.id}
+                          className="h-16 w-16 rounded object-cover"
+                        />
+                      ) : (
+                        <div className="h-16 w-16 rounded bg-gray-200 flex items-center justify-center">
+                          <span className="text-gray-400 text-xs">No Image</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="ml-4 flex-shrink-0">
-                      <div className="flex flex-col items-end">
-                        {recording.schedules.map((s, i) => (
-                          <span key={i} className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 mb-1">
-                            {s}
-                          </span>
-                        ))}
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleTriggerRecording(recording.id);
-                          }}
-                          disabled={triggeringId === recording.id}
-                          className={cn(
-                            "mt-2 text-xs border rounded px-2 py-1 transition-colors mr-2",
-                            triggeringId === recording.id
-                              ? "text-gray-400 border-gray-300 cursor-not-allowed"
-                              : "text-indigo-600 hover:text-indigo-900 border-indigo-600 hover:bg-indigo-50"
-                          )}
-                        >
-                          {triggeringId === recording.id ? "Triggering..." : "Record Now"}
-                        </button>
-                        <Link
-                          href={`/recordings/${recording.id}`}
-                          className="mt-2 text-xs border rounded px-2 py-1 transition-colors mr-2 text-blue-600 hover:text-blue-900 border-blue-600 hover:bg-blue-50 flex items-center"
-                        >
-                          Edit
-                        </Link>
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleDeleteRecording(recording.id);
-                          }}
-                          className="mt-2 text-xs border rounded px-2 py-1 transition-colors text-red-600 hover:text-red-900 border-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-3 w-3 inline mr-1" />
-                          Delete
-                        </button>
-                      </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {recording.title || recording.id}
+                      </p>
                     </div>
-                  </div>
+                  </Link>
                 </li>
               ))}
             </ul>
