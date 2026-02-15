@@ -1,5 +1,6 @@
 require "aws-sdk-s3"
 require "yaml"
+require "json"
 require "date"
 
 module Radicaster
@@ -51,6 +52,7 @@ module Radicaster
       attr_reader :logger, :s3_client, :bucket
 
       def extract_id(event)
+        event = JSON.parse(event["Records"][0]["Sns"]["Message"]) if event["Records"][0]["Sns"]
         raise '"s3" is not contained in the event' unless event["Records"][0]["s3"]
         key = event["Records"][0]["s3"]["object"]["key"]
         logger.debug("S3 key: #{key}")

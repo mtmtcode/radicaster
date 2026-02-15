@@ -5,6 +5,9 @@ import { CanonicalUserPrincipal, Effect, PolicyStatement, ServicePrincipal } fro
 import { Code, DockerImageCode, DockerImageFunction, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { S3EventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { Bucket, EventType } from 'aws-cdk-lib/aws-s3';
+import { SnsDestination } from 'aws-cdk-lib/aws-s3-notifications';
+import { Topic } from 'aws-cdk-lib/aws-sns';
+import { LambdaSubscription } from 'aws-cdk-lib/aws-sns-subscriptions';
 import * as cdk from 'aws-cdk-lib';
 import { CfnOutput, Duration } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
@@ -37,17 +40,20 @@ export class RadicasterStack extends cdk.Stack {
       radikoPassword: this.getEnv('RADICASTER_RADIKO_PASSWORD'),
     }
 
-    const bucket = this.setUpS3Bucket(params);
+    const { bucket, uploadTopic } = this.setUpS3(params);
     const dist = this.setUpCloudFront(bucket, params);
     this.setUpFuncRecRadiko(bucket, params);
-    this.setUpFuncGenFeed(bucket, dist, params);
-    this.setUpFuncCleanupEpisodes(bucket, params);
+    this.setUpFuncGenFeed(bucket, dist, params, uploadTopic);
+    this.setUpFuncCleanupEpisodes(bucket, params, uploadTopic);
   }
 
-  private setUpS3Bucket(params: Params) {
-    return new Bucket(this, 'bucket', {
+  private setUpS3(params: Params) {
+    const bucket = new Bucket(this, 'bucket', {
       bucketName: params.bucketName,
     });
+    const uploadTopic = new Topic(this, 'upload-topic');
+    bucket.addEventNotification(EventType.OBJECT_CREATED, new SnsDestination(uploadTopic), { suffix: '.m4a' });
+    return { bucket, uploadTopic };
   }
 
   private setUpFuncRecRadiko(bucket: Bucket, params: Params) {
@@ -88,7 +94,7 @@ export class RadicasterStack extends cdk.Stack {
     return funcRecRadiko;
   }
 
-  private setUpFuncGenFeed(bucket: Bucket, dist: Distribution, params: Params) {
+  private setUpFuncGenFeed(bucket: Bucket, dist: Distribution, params: Params, topic: Topic) {
     const authPrefix = `${params.basicAuthUser}:${params.basicAuthPassword}@`
     const domainName = params.customDomain || dist.domainName;
     const funcGenFeed = new DockerImageFunction(this, `func-gen-feed`, {
@@ -110,19 +116,11 @@ export class RadicasterStack extends cdk.Stack {
     bucket.grantRead(funcGenFeed.role);
     bucket.grantPut(funcGenFeed.role);
 
-    funcGenFeed.addEventSource(new S3EventSource(
-      bucket,
-      {
-        events: [EventType.OBJECT_CREATED],
-        filters: [{
-          suffix: ".m4a"
-        }],
-      }
-    ));
+    topic.addSubscription(new LambdaSubscription(funcGenFeed));
     return funcGenFeed;
   }
 
-  private setUpFuncCleanupEpisodes(bucket: Bucket, params: Params) {
+  private setUpFuncCleanupEpisodes(bucket: Bucket, params: Params, topic: Topic) {
     const funcCleanup = new DockerImageFunction(this, `func-cleanup-episodes`, {
       code: DockerImageCode.fromImageAsset(
         "../cleanup_episodes"
@@ -140,15 +138,7 @@ export class RadicasterStack extends cdk.Stack {
     bucket.grantRead(funcCleanup.role);
     bucket.grantDelete(funcCleanup.role);
 
-    funcCleanup.addEventSource(new S3EventSource(
-      bucket,
-      {
-        events: [EventType.OBJECT_CREATED],
-        filters: [{
-          suffix: ".m4a"
-        }],
-      }
-    ));
+    topic.addSubscription(new LambdaSubscription(funcCleanup));
     return funcCleanup;
   }
 
