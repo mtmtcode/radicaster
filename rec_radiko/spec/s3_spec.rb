@@ -50,6 +50,7 @@ module Radicaster::RecRadiko
         expect(client).to receive(:put_object).with(hash_including(
           bucket: bucket,
           key: "test/data/20210622.m4a",
+          storage_class: "INTELLIGENT_TIERING",
         ))
         s3.save_episode(episode)
       end
