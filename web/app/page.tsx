@@ -93,16 +93,17 @@ export default function RecordingsList() {
                 )}
 
                 {/* Status Indicator */}
-                <div className="absolute top-3 right-3">
-                  <span className={cn(
-                    "relative flex h-3 w-3",
-                    recording.status === 'healthy' ? "text-emerald-500" :
+                {recording.status !== 'healthy' && (
+                  <div className="absolute top-3 right-3">
+                    <span className={cn(
+                      "relative flex h-3 w-3",
                       recording.status === 'error' ? "text-red-500" : "text-amber-500"
-                  )}>
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-current ring-2 ring-white"></span>
-                  </span>
-                </div>
+                    )}>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-current ring-2 ring-white"></span>
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1 px-1">
