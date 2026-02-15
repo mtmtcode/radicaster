@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { M_PLUS_Rounded_1c } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "./components/Sidebar";
+import { GlobalHeader } from "./components/GlobalHeader";
 
 
 
@@ -24,9 +24,9 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className={`${mPlusRounded.variable} font-sans antialiased bg-[#f8f9fa] text-[#2c3e50]`}>
-        <div className="flex h-screen overflow-hidden">
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <div className="min-h-screen flex flex-col">
+          <GlobalHeader />
+          <main className="flex-1 w-full p-4 md:p-8">
             <div className="max-w-7xl mx-auto w-full">
               {children}
             </div>
