@@ -432,12 +432,12 @@ function ScheduleRow({ index, control, register, remove, canRemove, errors }: Sc
 
         {/* Offset */}
         <div className="sm:col-span-2 space-y-1">
-          <label className="text-xs font-bold text-gray-500">遅延 (分)</label>
+          <label className="text-xs font-bold text-gray-500">録音遅延 (分)</label>
           <input
             type="number"
             {...register(`schedules.${index}.offsetMinutes`, { valueAsNumber: true })}
             className="block w-full rounded-2xl border-gray-200 bg-gray-50 shadow-sm focus:border-primary focus:ring-primary/20 sm:text-sm p-3 outline-none text-center text-gray-500"
-            placeholder="5"
+            placeholder="10"
           />
         </div>
 
