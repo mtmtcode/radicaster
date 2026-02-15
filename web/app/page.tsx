@@ -93,16 +93,16 @@ export default function RecordingsList() {
                         <img
                           src={recording.imageUrl}
                           alt={recording.title || recording.id}
-                          className="h-16 w-16 rounded object-cover"
+                          className="h-32 w-32 rounded object-cover"
                         />
                       ) : (
-                        <div className="h-16 w-16 rounded bg-gray-200 flex items-center justify-center">
-                          <span className="text-gray-400 text-xs">No Image</span>
+                        <div className="h-32 w-32 rounded bg-gray-200 flex items-center justify-center">
+                          <span className="text-gray-400 text-sm">No Image</span>
                         </div>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-xl font-medium text-gray-900 truncate">
                         {recording.title || recording.id}
                       </p>
                     </div>

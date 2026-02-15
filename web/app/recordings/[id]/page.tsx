@@ -230,7 +230,7 @@ export default function EditRecordingPage({ params }: { params: Promise<{ id: st
             <button
               type="button"
               onClick={() => setMenuOpen(!menuOpen)}
-              className="p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="p-2 rounded-md border border-gray-200 text-gray-500 bg-white shadow-sm hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all"
               aria-label="More actions"
             >
               <MoreHorizontal className="h-5 w-5" />
