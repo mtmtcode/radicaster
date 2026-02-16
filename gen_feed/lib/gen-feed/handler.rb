@@ -34,6 +34,7 @@ module Radicaster
 
       attr_reader :logger, :storage, :generator
 
+      def build_cmd(event)
         event = JSON.parse(event["Records"][0]["Sns"]["Message"]) if event["Records"][0]["Sns"]
         raise '"s3" is not contained in the event' unless event["Records"][0]["s3"]
         key = event["Records"][0]["s3"]["object"]["key"]
