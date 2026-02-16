@@ -28,6 +28,7 @@ const formSchema = z.object({
   schedules: z.array(scheduleItemSchema).min(1, "スケジュールを1つ以上登録してください"),
   retentionType: z.enum(["none", "count", "days"]).default("none"),
   retentionValue: z.number().min(1, "1以上を指定してください").optional(),
+  deleteImage: z.boolean().optional(),
 }).refine(
   (data) => data.retentionType === "none" || (data.retentionValue !== undefined && data.retentionValue >= 1),
   { message: "保持数を入力してください", path: ["retentionValue"] }
@@ -79,6 +80,7 @@ export function RecordingForm({ initialValues, isEditing = false, onSubmit, isSu
     schedules: [{ startDay: "Mon", startHour: "21", startMinute: "00", durationMinutes: undefined as any, offsetMinutes: 5 }],
     retentionType: "none",
     retentionValue: undefined,
+    deleteImage: false,
     ...initialValues,
   };
 
@@ -190,6 +192,21 @@ export function RecordingForm({ initialValues, isEditing = false, onSubmit, isSu
               )}
             />
             {errors.imageFile && <p className="mt-1 text-xs font-bold text-red-500">{String(errors.imageFile.message)}</p>}
+
+            {isEditing && (
+              <div className="mt-2 flex items-center">
+                <input
+                  type="checkbox"
+                  id="deleteImage"
+                  {...register("deleteImage")}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  disabled={!!form.watch("imageFile") && form.watch("imageFile").length > 0}
+                />
+                <label htmlFor="deleteImage" className={cn("ml-2 block text-sm font-bold", !!form.watch("imageFile") && form.watch("imageFile").length > 0 ? "text-gray-400" : "text-gray-700")}>
+                  現在のアートワークを削除する
+                </label>
+              </div>
+            )}
           </div>
         </div>
       </section>

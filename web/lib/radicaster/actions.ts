@@ -67,7 +67,7 @@ export async function getRecording(id: string): Promise<any> {
   }
 }
 
-export async function deleteRecording(id: string): Promise<string[]> {
+export async function deleteRecording(id: string, options: { keepImage?: boolean } = {}): Promise<string[]> {
   const bucketName = process.env.RADICASTER_S3_BUCKET;
   if (!bucketName) throw new Error("RADICASTER_S3_BUCKET is not set");
 
@@ -81,19 +81,16 @@ export async function deleteRecording(id: string): Promise<string[]> {
         Key: `radicaster/${id}.yaml`,
       })
     );
-    // Also delete artwork if we can guess the extension? 
-    // The previous implementation dind't delete artwork explicitly in DELETE route?
-    // Wait, the DELETE route just deleted `radicaster/${id}.yaml`.
-    // It didn't delete the image.
-    // But creation uploads `radicaster/${id}.jpg` or `.png`.
-    // We should probably delete that too.
-    // Let's try deleting both jpg and png to be safe.
-    try {
-      await s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: `radicaster/${id}.jpg` }));
-    } catch { }
-    try {
-      await s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: `radicaster/${id}.png` }));
-    } catch { }
+
+    // Only delete images if keepImage is false (default)
+    if (!options.keepImage) {
+      try {
+        await s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: `radicaster/${id}.jpg` }));
+      } catch { }
+      try {
+        await s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: `radicaster/${id}.png` }));
+      } catch { }
+    }
 
   } catch (error: any) {
     console.error(`Failed to delete S3 object for ${id}:`, error);

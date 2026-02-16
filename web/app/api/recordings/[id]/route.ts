@@ -59,8 +59,23 @@ export async function PUT(
       return NextResponse.json({ error: "ID mismatch" }, { status: 400 });
     }
 
+    // Determine if we should keep the existing image
+    // If a new image is provided (imageFile), we don't keep the old one (it gets overwritten or deleted)
+    // If no new image is provided:
+    //   - If deleteImage is true, we delete the old one
+    //   - If deleteImage is false/undefined, we keep the old one
+
+    // Note: requestSchema doesn't have deleteImage, so we check body directly or update schema
+    // Let's check body directly for now as Zod strips unknown keys by default if strict() is used,
+    // but here it's simple object().
+    const shouldDeleteImage = body.deleteImage === true;
+    const hasNewImage = imageFile && imageFile.size > 0;
+
+    const keepImage = !hasNewImage && !shouldDeleteImage;
+
     // Delete existing
-    const deleteErrors = await deleteRecording(id);
+    // We pass keepImage option
+    const deleteErrors = await deleteRecording(id, { keepImage });
     if (deleteErrors.length > 0) {
       console.warn(`Delete errors for ${id} during update:`, deleteErrors);
       // Continue anyway as we want to recreate
