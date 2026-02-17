@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getRecording, deleteRecording, createRecording } from "@/lib/radicaster/actions";
+import { getRecording, deleteRecording, createRecording, triggerRecordingUpdate } from "@/lib/radicaster/actions";
 
 const scheduleSchema = z.string().regex(/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s*([0-5]?[0-9]):([0-5]?[0-9])(?::([0-5]?[0-9]))?$/i);
 
@@ -84,8 +84,10 @@ export async function PUT(
     // Create new
     await createRecording({
       ...data,
-      imageFile: imageFile || undefined
     });
+
+    // Trigger feed regeneration and cleanup
+    await triggerRecordingUpdate(id);
 
     return NextResponse.json({ success: true, id });
 

@@ -17,7 +17,71 @@ import * as yaml from "js-yaml";
 import { ExecutionSchedule } from "@/lib/radicaster/schedule";
 
 const s3Client = new S3Client({});
+
 const eventBridgeClient = new EventBridgeClient({});
+import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
+
+const snsClient = new SNSClient({});
+
+export async function triggerRecordingUpdate(id: string): Promise<void> {
+  const topicArn = process.env.RADICASTER_SNS_TOPIC_ARN;
+  if (!topicArn) {
+    console.warn("RADICASTER_SNS_TOPIC_ARN is not set. Skipping SNS publish.");
+    return;
+  }
+
+  // Construct a dummy S3 event payload that matches what gen-feed and cleanup-episodes expect
+  // key format: {id}/data/{YYYYMMDD}.m4a or just {id}/something
+  // gen-feed expects: id = key.split("/").first
+  // cleanup-episodes expects: key.split("/").first and key format {id}/data/{YYYYMMDD}.m4a for date extraction
+  // However, for cleanup, it lists episodes from S3, so the trigger event's key doesn't strictly need to be a valid episode 
+  // IF the handler handles "non-date" keys gracefully or if we just need to trigger it.
+  // 
+  // cleanup-episodes handler:
+  // extract_id(event) -> key.split("/").first
+  // load_definition(id)
+  // ...
+  // So as long as ID is correct, it proceeds to list actual files from S3.
+  //
+  // gen-feed handler:
+  // id = key.split("/").first
+  // ...
+  //
+  // So a key like `${id}/trigger-update.m4a` should work for both to extract ID.
+  // note: The SnsDestination in CDK adds a suffix filter for .m4a, but that's for S3->SNS.
+  // Here we are publishing directly to SNS, so we can send whatever JSON we want, 
+  // AS LONG AS the Lambda expects that JSON structure.
+  // The Lambdas expect:
+  // event["Records"][0]["Sns"]["Message"] -> JSON parse -> event["Records"][0]["s3"]["object"]["key"]
+
+  const key = `${id}/trigger-update.m4a`;
+
+  const s3Event = {
+    Records: [
+      {
+        s3: {
+          object: {
+            key: key
+          }
+        }
+      }
+    ]
+  };
+
+  const message = JSON.stringify(s3Event);
+
+  try {
+    await snsClient.send(new PublishCommand({
+      TopicArn: topicArn,
+      Message: message,
+    }));
+    console.log(`Published SNS message for ${id} to update feed/cleanup.`);
+  } catch (e) {
+    console.error("Failed to publish SNS message:", e);
+    // Don't fail the request just because SNS failed
+  }
+}
+
 
 export interface RecordingData {
   id: string;

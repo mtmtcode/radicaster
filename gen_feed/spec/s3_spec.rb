@@ -101,6 +101,7 @@ module Radicaster::GenFeed
           key: key,
           body: feed_body,
           content_type: "application/rss+xml",
+          cache_control: "no-cache",
         )
         s3.save_feed(id, feed_body)
       end

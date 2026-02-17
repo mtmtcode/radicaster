@@ -53,6 +53,7 @@ module Radicaster
           key: key,
           body: feed_body,
           content_type: "application/rss+xml",
+          cache_control: "no-cache",
         )
       end
 
