@@ -96,7 +96,12 @@ module Radicaster::GenFeed
 
       it "uploads passed body with proper key" do
         key = "dummy-program-id/index.rss"
-        expect(client).to receive(:put_object).with(bucket: bucket, key: key, body: feed_body)
+        expect(client).to receive(:put_object).with(
+          bucket: bucket,
+          key: key,
+          body: feed_body,
+          content_type: "application/rss+xml",
+        )
         s3.save_feed(id, feed_body)
       end
     end

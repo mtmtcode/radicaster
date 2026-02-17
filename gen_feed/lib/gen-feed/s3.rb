@@ -52,6 +52,7 @@ module Radicaster
           bucket: bucket,
           key: key,
           body: feed_body,
+          content_type: "application/rss+xml",
         )
       end
 
