@@ -161,7 +161,7 @@ export async function GET() {
         title: s3?.title || id,
         station: s3?.station,
         imageUrl: s3?.imageUrl,
-        schedules: s3?.execution_schedule || eb || [],
+        schedules: s3?.program_schedule || s3?.execution_schedule || eb || [],
       });
     }
 
