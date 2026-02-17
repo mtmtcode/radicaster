@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PlusCircle, Search, AlertCircle, Clock } from "lucide-react";
+import { PlusCircle, Search, AlertCircle, Rss } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Recording {
@@ -74,12 +74,17 @@ export default function RecordingsList() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(12rem,1fr))] gap-6">
           {recordings.map((recording) => (
-            <Link
+            <div
               key={recording.id}
-              href={`/recordings/${recording.id}`}
-              className="group flex flex-col pop-button"
+              className="group flex flex-col pop-button relative h-full"
             >
-              <div className="aspect-square w-full overflow-hidden rounded-2xl bg-gray-100 relative mb-3 shadow-sm group-hover:shadow-xl group-hover:shadow-primary/10 transition-all duration-300 ring-4 ring-transparent group-hover:ring-primary/10">
+              <Link
+                href={`/recordings/${recording.id}`}
+                className="absolute inset-0 z-0 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary/30"
+                aria-label={`View ${recording.title || recording.id}`}
+              ></Link>
+
+              <div className="aspect-square w-full overflow-hidden rounded-2xl bg-gray-100 relative mb-3 shadow-sm group-hover:shadow-xl group-hover:shadow-primary/10 transition-all duration-300 ring-4 ring-transparent group-hover:ring-primary/10 pointer-events-none">
                 {recording.imageUrl ? (
                   <img
                     src={recording.imageUrl}
@@ -106,17 +111,29 @@ export default function RecordingsList() {
                 )}
               </div>
 
-              <div className="space-y-1 px-1">
+              <div className="px-1 flex-1 relative pointer-events-none">
                 <h3 className="text-sm font-bold text-slate-700 line-clamp-1 group-hover:text-primary transition-colors">
                   {recording.title || recording.id}
                 </h3>
-                {recording.station && (
+                <div className="flex justify-between items-center min-h-[1.25rem]">
                   <p className="text-xs text-gray-400 font-medium truncate">
-                    {recording.station}
+                    {recording.schedules && recording.schedules.length > 0 ? recording.schedules[0] : ""}
                   </p>
-                )}
+
+                  {/* RSS Link */}
+                  <a
+                    href={`https://p.mtmt.me/${recording.id}/`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="z-10 text-gray-300 hover:text-[#EE802F] transition-colors pointer-events-auto p-1 -mr-1 -mb-1"
+                    title="RSS Feed"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Rss className="h-4 w-4" />
+                  </a>
+                </div>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}
