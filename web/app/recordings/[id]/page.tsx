@@ -4,6 +4,7 @@ import { useEffect, useState, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { RecordingForm, FormValues } from "@/app/components/RecordingForm";
+import { EpisodeList } from "@/app/components/EpisodeList";
 import { MoreHorizontal, Trash2, Mic, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -276,6 +277,10 @@ export default function EditRecordingPage({ params }: { params: Promise<{ id: st
         )}
 
         <RecordingForm initialValues={data} isEditing={true} onSubmit={onSubmit} isSubmitting={isSubmitting} />
+
+        <div className="mt-12 pt-8 border-t border-gray-100">
+          <EpisodeList id={id} />
+        </div>
       </div>
     </div>
   );
