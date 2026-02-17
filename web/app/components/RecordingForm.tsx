@@ -3,18 +3,20 @@
 import { useFieldArray, useForm, Controller, useWatch, Control, FieldErrors, UseFormRegister } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Plus, Trash2, Clock, MapPin, Radio, User, FileText, Image as ImageIcon, Save, Fingerprint } from "lucide-react";
+import { Plus, Trash2, Clock, MapPin, Radio, User, FileText, Image as ImageIcon, Save, Fingerprint, ClipboardPaste } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { BroadcastSchedulePicker } from "@/app/components/BroadcastSchedulePicker";
 import { RADIKO_AREAS, RADIKO_STATIONS, DEFAULT_AREA_ID } from "@/app/constants/radiko";
 import { cn } from "@/lib/utils";
+import { RadikoShareModal } from "@/app/components/RadikoShareModal";
+import { RadikoShareInfo } from "@/app/utils/radiko";
 
 // Internal schema for the form
 const scheduleItemSchema = z.object({
   startDay: z.string(),
   startHour: z.string(),
   startMinute: z.string(),
-  durationMinutes: z.number({ invalid_type_error: "時間を入力してください" }).min(1, "1分以上で指定してください"),
+  durationMinutes: z.number({ message: "時間を入力してください" }).min(1, "1分以上で指定してください"),
   offsetMinutes: z.number().min(0).default(10),
 });
 
@@ -77,7 +79,7 @@ export function RecordingForm({ initialValues, isEditing = false, onSubmit, isSu
     imageFile: null,
     area: DEFAULT_AREA_ID,
     station: "",
-    schedules: [{ startDay: "Mon", startHour: "21", startMinute: "00", durationMinutes: undefined as any, offsetMinutes: 5 }],
+    schedules: [{ startDay: "Mon", startHour: "21", startMinute: "00", durationMinutes: undefined as any, offsetMinutes: 10 }],
     retentionType: "none",
     retentionValue: undefined,
     deleteImage: false,
@@ -97,6 +99,46 @@ export function RecordingForm({ initialValues, isEditing = false, onSubmit, isSu
     }
   }, [initialValues, reset]);
 
+  const [isRadikoModalOpen, setIsRadikoModalOpen] = useState(false);
+
+  const handleRadikoParse = (info: RadikoShareInfo) => {
+    // Reflect parsed info to form
+    form.setValue("title", info.title);
+    if (info.stationName) {
+      form.setValue("author", info.stationName);
+    }
+
+    // Set Area and Station
+    if (info.areaId) {
+      form.setValue("area", info.areaId);
+    }
+    if (info.stationId) {
+      // Need to wait for area selection to propagate or just set it?
+      // However, react-hook-form might need a moment or we can just set it.
+      form.setValue("station", info.stationId);
+    }
+
+    // Update Schedule
+    // We update the first schedule or append if empty
+    const scheduleData = {
+      startDay: info.startDay,
+      startHour: info.startHour,
+      startMinute: info.startMinute,
+      durationMinutes: info.durationMinutes,
+      offsetMinutes: 5 // Keep default or existing
+    };
+
+    if (fields.length > 0) {
+      // It is safer to update fields individually for useFieldArray items
+      form.setValue(`schedules.0.startDay`, scheduleData.startDay);
+      form.setValue(`schedules.0.startHour`, scheduleData.startHour);
+      form.setValue(`schedules.0.startMinute`, scheduleData.startMinute);
+      form.setValue(`schedules.0.durationMinutes`, scheduleData.durationMinutes);
+    } else {
+      append(scheduleData);
+    }
+  };
+
   const { fields, append, remove } = useFieldArray({
     control,
     name: "schedules",
@@ -112,12 +154,22 @@ export function RecordingForm({ initialValues, isEditing = false, onSubmit, isSu
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
       {/* Basic Info Section */}
       <section className="space-y-6">
-        <h3 className="text-lg font-bold text-slate-700 flex items-center gap-2 border-b border-gray-100 pb-2">
-          <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">
-            <FileText className="w-5 h-5" />
-          </span>
-          基本情報
-        </h3>
+        <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+          <h3 className="text-lg font-bold text-slate-700 flex items-center gap-2">
+            <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">
+              <FileText className="w-5 h-5" />
+            </span>
+            基本情報
+          </h3>
+          <button
+            type="button"
+            onClick={() => setIsRadikoModalOpen(true)}
+            className="text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+          >
+            <ClipboardPaste className="w-3.5 h-3.5" />
+            Radikoから入力
+          </button>
+        </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div className="group">
@@ -317,6 +369,11 @@ export function RecordingForm({ initialValues, isEditing = false, onSubmit, isSu
           )}
         </button>
       </div>
+      <RadikoShareModal
+        isOpen={isRadikoModalOpen}
+        onClose={() => setIsRadikoModalOpen(false)}
+        onParse={handleRadikoParse}
+      />
     </form>
   );
 }
