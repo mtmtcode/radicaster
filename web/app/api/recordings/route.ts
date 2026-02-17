@@ -40,6 +40,27 @@ export async function GET() {
     const s3Items = new Map<string, any>(); // id -> content
 
     if (s3Response.Contents) {
+      // Build a map of available images
+      const imageMap = new Map<string, string>(); // id -> extension
+      s3Response.Contents.forEach((item) => {
+        if (!item.Key) return;
+        // Key format: radicaster/<id>.<ext>
+        const parts = item.Key.split("/");
+        if (parts.length !== 2) return;
+        const filename = parts[1];
+        const lastDotIndex = filename.lastIndexOf(".");
+        if (lastDotIndex === -1) return;
+
+        const id = filename.substring(0, lastDotIndex);
+        const ext = filename.substring(lastDotIndex).toLowerCase();
+
+        if ([".jpg", ".jpeg", ".png"].includes(ext)) {
+          imageMap.set(id, ext);
+        }
+      });
+
+      const bucketUrl = process.env.RADICASTER_BUCKET_URL;
+
       await Promise.all(s3Response.Contents.map(async (item) => {
         if (!item.Key?.endsWith(".yaml")) return;
 
@@ -50,20 +71,11 @@ export async function GET() {
           if (str) {
             const parsed = yaml.load(str) as any;
             if (parsed && parsed.id) {
-              // Try to fetch image URL from RSS
-              try {
-                const rssKey = `${parsed.id}/index.rss`;
-                const rssObj = await s3Client.send(new GetObjectCommand({ Bucket: bucketName, Key: rssKey }));
-                const rssStr = await rssObj.Body?.transformToString();
-                if (rssStr) {
-                  // Simple regex to find <itunes:image href="...">
-                  const match = rssStr.match(/<itunes:image href="([^"]+)"/);
-                  if (match && match[1]) {
-                    parsed.imageUrl = match[1];
-                  }
-                }
-              } catch (e) {
-                // Ignore RSS fetch errors (no feed yet, etc)
+              const imageExt = imageMap.get(parsed.id);
+              if (imageExt && bucketUrl) {
+                // Remove trailing slash if present to avoid double slash
+                const baseUrl = bucketUrl.endsWith("/") ? bucketUrl.slice(0, -1) : bucketUrl;
+                parsed.imageUrl = `${baseUrl}/radicaster/${parsed.id}${imageExt}`;
               }
               s3Items.set(parsed.id, parsed);
             }
