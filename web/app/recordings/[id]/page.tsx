@@ -146,6 +146,7 @@ export default function EditRecordingPage({ params }: { params: Promise<{ id: st
           schedules: schedules,
           retentionType: yamlData.retention_type || "none",
           retentionValue: yamlData.retention_value || undefined,
+          imageUrl: yamlData.imageUrl,
           // imageFile is skipped, user has to re-upload if they want
         });
 

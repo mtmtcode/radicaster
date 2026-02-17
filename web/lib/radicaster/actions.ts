@@ -31,6 +31,7 @@ export interface RecordingData {
   imageFile?: File; // Optional for updates if not changing
   retention_type?: "none" | "count" | "days";
   retention_value?: number;
+  deleteImage?: boolean;
 }
 
 export type RecordingStatus = "healthy" | "s3_only" | "eventbridge_only" | "error";
@@ -56,10 +57,27 @@ export async function getRecording(id: string): Promise<any> {
 
     const parsed: any = yaml.load(str);
 
-    // Try to fetch image URL from RSS if not present? Or construct it?
-    // Actually for the "Edit" form, we don't display the current image yet
-    // but we might want to.
-    // For now, let's just return the parsed YAML content.
+
+    // Check for image existence
+    const bucketUrl = process.env.RADICASTER_BUCKET_URL;
+    if (bucketUrl) {
+      try {
+        // Try jpg
+        await s3Client.send(new GetObjectCommand({ Bucket: bucketName, Key: `radicaster/${id}.jpg` }));
+        const baseUrl = bucketUrl.endsWith("/") ? bucketUrl.slice(0, -1) : bucketUrl;
+        parsed.imageUrl = `${baseUrl}/radicaster/${id}.jpg`;
+      } catch {
+        try {
+          // Try png
+          await s3Client.send(new GetObjectCommand({ Bucket: bucketName, Key: `radicaster/${id}.png` }));
+          const baseUrl = bucketUrl.endsWith("/") ? bucketUrl.slice(0, -1) : bucketUrl;
+          parsed.imageUrl = `${baseUrl}/radicaster/${id}.png`;
+        } catch {
+          // No image found
+        }
+      }
+    }
+
     return parsed;
   } catch (e: any) {
     if (e.name === 'NoSuchKey') return null;
@@ -182,6 +200,16 @@ export async function createRecording(data: RecordingData): Promise<void> {
   const yamlContent = yaml.dump(yamlObj);
 
   // 2. Upload to S3
+  // Delete existing images if requested
+  if (data.deleteImage) {
+    try {
+      await s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: `radicaster/${data.id}.jpg` }));
+    } catch { }
+    try {
+      await s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: `radicaster/${data.id}.png` }));
+    } catch { }
+  }
+
   // Upload YAML
   await s3Client.send(
     new PutObjectCommand({
@@ -207,6 +235,7 @@ export async function createRecording(data: RecordingData): Promise<void> {
         Key: `radicaster/${data.id}.${ext}`,
         Body: buffer,
         ContentType: data.imageFile.type,
+        CacheControl: "no-cache",
       })
     );
   }

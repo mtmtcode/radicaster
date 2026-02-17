@@ -22,6 +22,7 @@ const requestSchema = z.object({
   execution_schedule: z.array(scheduleSchema),
   retention_type: z.enum(["none", "count", "days"]).optional(),
   retention_value: z.number().min(1).optional(),
+  deleteImage: z.boolean().optional(),
 });
 
 export async function GET() {
@@ -191,7 +192,8 @@ export async function POST(req: NextRequest) {
 
     await createRecording({
       ...data,
-      imageFile: imageFile || undefined
+      imageFile: imageFile || undefined,
+      deleteImage: data.deleteImage,
     });
 
     return NextResponse.json({ success: true, id: data.id });

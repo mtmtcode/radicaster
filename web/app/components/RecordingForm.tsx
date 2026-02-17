@@ -25,6 +25,7 @@ const formSchema = z.object({
   title: z.string().min(1, "タイトルは必須です"),
   author: z.string().min(1, "作者名は必須です"),
   imageFile: z.any().optional(),
+  imageUrl: z.string().optional(),
   area: z.string().min(1, "エリアを選択してください"),
   station: z.string().min(1, "放送局を選択してください"),
   schedules: z.array(scheduleItemSchema).min(1, "スケジュールを1つ以上登録してください"),
@@ -86,6 +87,10 @@ export function RecordingForm({ initialValues, isEditing = false, onSubmit, isSu
     ...initialValues,
   };
 
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    (initialValues as any)?.imageUrl || null
+  );
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema) as any,
     defaultValues,
@@ -96,8 +101,30 @@ export function RecordingForm({ initialValues, isEditing = false, onSubmit, isSu
   useEffect(() => {
     if (initialValues) {
       reset({ ...defaultValues, ...initialValues });
+      if ((initialValues as any).imageUrl) {
+        setImagePreview((initialValues as any).imageUrl);
+      }
     }
   }, [initialValues, reset]);
+
+  // Handle file selection for preview
+  const imageFile = useWatch({ control, name: "imageFile" });
+  useEffect(() => {
+    if (imageFile && imageFile.length > 0) {
+      const file = imageFile[0];
+      const objectUrl = URL.createObjectURL(file);
+      setImagePreview(objectUrl);
+      form.setValue("deleteImage", false); // Unmark deletion if new file selected
+
+      return () => URL.revokeObjectURL(objectUrl);
+    }
+  }, [imageFile, form]);
+
+  const handleDeleteImage = () => {
+    setImagePreview(null);
+    form.setValue("imageFile", null); // Clear file input
+    form.setValue("deleteImage", true); // Mark for deletion
+  };
 
   const [isRadikoModalOpen, setIsRadikoModalOpen] = useState(false);
 
@@ -233,32 +260,39 @@ export function RecordingForm({ initialValues, isEditing = false, onSubmit, isSu
               <ImageIcon className="h-4 w-4 text-gray-400" />
               アートワーク
             </label>
-            <input
-              type="file"
-              id="imageFile"
-              accept="image/jpeg,image/png"
-              {...register("imageFile")}
-              className={cn(
-                "block w-full rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/50 text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-600 hover:file:bg-gray-200 p-2 cursor-pointer transition-colors hover:border-gray-300",
-                errors.imageFile && "border-red-300"
-              )}
-            />
-            {errors.imageFile && <p className="mt-1 text-xs font-bold text-red-500">{String(errors.imageFile.message)}</p>}
 
-            {isEditing && (
-              <div className="mt-2 flex items-center">
-                <input
-                  type="checkbox"
-                  id="deleteImage"
-                  {...register("deleteImage")}
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                  disabled={!!form.watch("imageFile") && form.watch("imageFile").length > 0}
+            {imagePreview ? (
+              <div className="relative w-32 h-32 rounded-2xl overflow-hidden border-2 border-gray-100 group/image">
+                <img
+                  src={imagePreview}
+                  alt="Artwork Preview"
+                  className="w-full h-full object-cover"
                 />
-                <label htmlFor="deleteImage" className={cn("ml-2 block text-sm font-bold", !!form.watch("imageFile") && form.watch("imageFile").length > 0 ? "text-gray-400" : "text-gray-700")}>
-                  現在のアートワークを削除する
-                </label>
+                <button
+                  type="button"
+                  onClick={handleDeleteImage}
+                  className="absolute top-1 right-1 bg-black/50 hover:bg-red-500 text-white p-1 rounded-full opacity-0 group-hover/image:opacity-100 transition-all"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <input
+                  type="file"
+                  id="imageFile"
+                  accept="image/jpeg,image/png"
+                  {...register("imageFile")}
+                  className={cn(
+                    "block w-full rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/50 text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-600 hover:file:bg-gray-200 p-2 cursor-pointer transition-colors hover:border-gray-300",
+                    errors.imageFile && "border-red-300"
+                  )}
+                />
+                {errors.imageFile && <p className="mt-1 text-xs font-bold text-red-500">{String(errors.imageFile.message)}</p>}
               </div>
             )}
+            {/* Hidden input for delete flag managed by state, but mapped to form */}
+            <input type="hidden" {...register("deleteImage")} />
           </div>
         </div>
       </section>
