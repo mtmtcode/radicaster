@@ -15,7 +15,7 @@ const scheduleItemSchema = z.object({
   startHour: z.string(),
   startMinute: z.string(),
   durationMinutes: z.number({ invalid_type_error: "時間を入力してください" }).min(1, "1分以上で指定してください"),
-  offsetMinutes: z.number().min(0).default(5),
+  offsetMinutes: z.number().min(0).default(10),
 });
 
 const formSchema = z.object({
@@ -291,7 +291,7 @@ export function RecordingForm({ initialValues, isEditing = false, onSubmit, isSu
 
           <button
             type="button"
-            onClick={() => append({ startDay: "Mon", startHour: "21", startMinute: "00", durationMinutes: undefined as any, offsetMinutes: 5 })}
+            onClick={() => append({ startDay: "Mon", startHour: "21", startMinute: "00", durationMinutes: undefined as any, offsetMinutes: 10 })}
             className="mt-2 inline-flex items-center px-5 py-3 border-2 border-dashed border-gray-300 text-sm font-bold rounded-2xl text-gray-500 hover:bg-gray-50 hover:border-gray-400 transition-colors focus:outline-none"
           >
             <Plus className="h-5 w-5 mr-2" /> スケジュールを追加
