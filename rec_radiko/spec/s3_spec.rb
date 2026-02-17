@@ -51,6 +51,7 @@ module Radicaster::RecRadiko
           bucket: bucket,
           key: "test/data/20210622.m4a",
           storage_class: "INTELLIGENT_TIERING",
+          content_type: "audio/mp4",
         ))
         s3.save_episode(episode)
       end
