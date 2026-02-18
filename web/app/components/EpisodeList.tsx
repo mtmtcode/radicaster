@@ -34,6 +34,7 @@ export function EpisodeList({ id }: { id: string }) {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastSavedTimeRef = useRef(0);
 
   useEffect(() => {
     setCurrentTime(0);
@@ -215,14 +216,41 @@ export function EpisodeList({ id }: { id: string }) {
                     autoPlay
                     className="hidden"
                     onPlay={() => setIsPlaying(true)}
-                    onPause={() => setIsPlaying(false)}
-                    onEnded={() => setIsPlaying(false)}
+                    onPause={(e) => {
+                      setIsPlaying(false);
+                      // Save position on pause
+                      const time = e.currentTarget.currentTime;
+                      localStorage.setItem(`radicaster-playback-${episode.guid}`, time.toString());
+                    }}
+                    onEnded={() => {
+                      setIsPlaying(false);
+                      // Clear position on end (optional, but usually good)
+                      localStorage.removeItem(`radicaster-playback-${episode.guid}`);
+                    }}
                     onTimeUpdate={(e) => {
-                      setCurrentTime(e.currentTarget.currentTime);
+                      const time = e.currentTarget.currentTime;
+                      setCurrentTime(time);
+
+                      // Save position every 5 seconds
+                      if (Math.abs(time - lastSavedTimeRef.current) > 5) {
+                        localStorage.setItem(`radicaster-playback-${episode.guid}`, time.toString());
+                        lastSavedTimeRef.current = time;
+                      }
                     }}
                     onLoadedMetadata={(e) => {
                       setDuration(e.currentTarget.duration);
                       e.currentTarget.volume = volume;
+
+                      // Restore position if available
+                      const savedTime = localStorage.getItem(`radicaster-playback-${episode.guid}`);
+                      if (savedTime) {
+                        const time = parseFloat(savedTime);
+                        if (!isNaN(time) && time > 0 && time < e.currentTarget.duration) {
+                          e.currentTarget.currentTime = time;
+                          setCurrentTime(time);
+                          lastSavedTimeRef.current = time;
+                        }
+                      }
                     }}
                   />
                 </div>
