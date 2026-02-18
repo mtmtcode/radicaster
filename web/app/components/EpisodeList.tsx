@@ -28,9 +28,17 @@ export function EpisodeList({ id }: { id: string }) {
   const [feed, setFeed] = useState<FeedData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentEpisode, setCurrentEpisode] = useState<string | null>(null); // guid
+  const [currentEpisodeIndex, setCurrentEpisodeIndex] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    setCurrentTime(0);
+    setDuration(0);
+  }, [currentEpisodeIndex]);
 
   useEffect(() => {
     async function fetchFeed() {
@@ -49,46 +57,30 @@ export function EpisodeList({ id }: { id: string }) {
     fetchFeed();
   }, [id]);
 
-  const togglePlay = (episode: Episode) => {
-    if (currentEpisode === episode.guid) {
+  const togglePlay = (index: number) => {
+    if (currentEpisodeIndex === index) {
       if (isPlaying) {
         audioRef.current?.pause();
-        setIsPlaying(false);
       } else {
         audioRef.current?.play();
-        setIsPlaying(true);
       }
     } else {
       if (audioRef.current) {
         audioRef.current.pause();
       }
-      setCurrentEpisode(episode.guid);
-      setIsPlaying(true); // Don't set true immediately until load? No, standard html audio behaves well.
-
-      // We need to wait for render to update the audio src? 
-      // Actually standard way is to have one audio element and switch src, 
-      // or have render one audio element for current episode.
+      setCurrentEpisodeIndex(index);
+      // isPlaying logic is handled by onPlay event of the new audio element
     }
   };
 
-  const currentEpisodeData = feed?.items.find(i => i.guid === currentEpisode);
+  const currentEpisodeData = currentEpisodeIndex !== null ? feed?.items[currentEpisodeIndex] : null;
 
   // Auto-play when source changes if it was user initiated
-  useEffect(() => {
-    if (currentEpisode && isPlaying && audioRef.current) {
-      // If the source changes, we might need to call play()
-      // But if we render a new audio element with autoPlay, it works.
-      // Let's rely on the `autoPlay` attribute for new episodes, 
-      // and manual control for pause/resume.
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(error => {
-          console.log("Auto-play prevented:", error);
-          setIsPlaying(false);
-        });
-      }
-    }
-  }, [currentEpisode]);
+  // We don't need this useEffect anymore because we play via autoPlay attribute on new audio element
+  // or via manual play() call.
+  // Actually, let's keep it simple. The <audio autoPlay> handles the start.
+  // But if we pause and play heavily, sometimes autoPlay is blocked.
+  // But for now let's rely on standard currentEpisodeIndex change remounting component.
 
 
   if (loading) return <div className="text-center p-8 text-gray-500">Loading episodes...</div>;
@@ -105,18 +97,18 @@ export function EpisodeList({ id }: { id: string }) {
       </h3>
 
       <div className="space-y-3">
-        {feed.items.map((episode) => {
-          const isCurrent = currentEpisode === episode.guid;
+        {feed.items.map((episode, index) => {
+          const isCurrent = currentEpisodeIndex === index;
           return (
             <div
-              key={episode.guid}
+              key={index}
               className={cn(
                 "group flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 rounded-2xl border-2 transition-all",
                 isCurrent ? "border-primary bg-primary/5" : "border-gray-100 bg-white hover:border-gray-200"
               )}
             >
               <button
-                onClick={() => togglePlay(episode)}
+                onClick={() => togglePlay(index)}
                 className={cn(
                   "flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-colors",
                   isCurrent ? "bg-primary text-white" : "bg-gray-100 text-gray-500 group-hover:bg-primary group-hover:text-white"
@@ -145,38 +137,93 @@ export function EpisodeList({ id }: { id: string }) {
 
               {/* Audio Player for this episode if it is active */}
               {isCurrent && (
-                <div className="w-full sm:w-auto mt-2 sm:mt-0 flex flex-col sm:flex-row items-center gap-2">
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => {
-                        if (audioRef.current) audioRef.current.currentTime -= 10;
+                <div className="w-full mt-3 flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-4">
+                    {/* Controls & Time */}
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          if (audioRef.current) audioRef.current.currentTime -= 15;
+                        }}
+                        className="p-2 hover:bg-gray-100 rounded-full text-gray-600 transition-colors"
+                        title="15秒戻る"
+                      >
+                        <RotateCcw className="w-5 h-5" />
+                      </button>
+
+                      <div className="text-sm font-medium tabular-nums text-gray-700">
+                        {(() => {
+                          const m = Math.floor(currentTime / 60);
+                          const s = Math.floor(currentTime % 60);
+                          return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                        })()}
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          if (audioRef.current) audioRef.current.currentTime += 30;
+                        }}
+                        className="p-2 hover:bg-gray-100 rounded-full text-gray-600 transition-colors"
+                        title="30秒進む"
+                      >
+                        <RotateCw className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* Seek Bar */}
+                    <input
+                      type="range"
+                      min={0}
+                      max={duration || 100}
+                      value={currentTime}
+                      onChange={(e) => {
+                        const newTime = Number(e.target.value);
+                        if (audioRef.current) {
+                          audioRef.current.currentTime = newTime;
+                        }
+                        setCurrentTime(newTime);
                       }}
-                      className="flex items-center gap-1 px-2 py-1.5 hover:bg-gray-100 rounded-md text-gray-600 transition-colors text-xs font-medium"
-                      title="10秒戻る"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                      <span>15</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (audioRef.current) audioRef.current.currentTime += 30;
-                      }}
-                      className="flex items-center gap-1 px-2 py-1.5 hover:bg-gray-100 rounded-md text-gray-600 transition-colors text-xs font-medium"
-                      title="30秒進む"
-                    >
-                      <span>30</span>
-                      <RotateCw className="w-4 h-4" />
-                    </button>
+                      className="flex-grow h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+                    />
+
+                    {/* Volume Control */}
+                    <div className="flex items-center gap-2">
+                      <Volume2 className="w-4 h-4 text-gray-500" />
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={volume}
+                        onChange={(e) => {
+                          const newVolume = Number(e.target.value);
+                          setVolume(newVolume);
+                          if (audioRef.current) {
+                            audioRef.current.volume = newVolume;
+                          }
+                        }}
+                        className="w-20 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+                        title="音量"
+                      />
+                    </div>
                   </div>
+
                   <audio
                     ref={audioRef}
+                    key={index}
                     src={episode.enclosure?.url}
-                    controls
                     autoPlay
-                    className="h-8 w-full sm:w-64"
+                    className="hidden"
                     onPlay={() => setIsPlaying(true)}
                     onPause={() => setIsPlaying(false)}
                     onEnded={() => setIsPlaying(false)}
+                    onTimeUpdate={(e) => {
+                      setCurrentTime(e.currentTarget.currentTime);
+                    }}
+                    onLoadedMetadata={(e) => {
+                      setDuration(e.currentTarget.duration);
+                      e.currentTarget.volume = volume;
+                    }}
                   />
                 </div>
               )}
