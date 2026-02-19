@@ -1,17 +1,22 @@
-FROM amazon/aws-lambda-ruby:2.7 AS bundler
-WORKDIR /var/task
-RUN yum groupinstall -y "Development Tools"
-COPY ./Gemfile ./Gemfile
-COPY ./Gemfile.lock ./Gemfile.lock
-RUN bundle install --path=vendor/bundle
+FROM public.ecr.aws/lambda/nodejs:20 AS builder
+
+WORKDIR /build
+COPY package*.json ./
+RUN npm ci
+COPY tsconfig.json ./
+COPY src/ ./src/
+RUN npm run build
 
 
-FROM amazon/aws-lambda-ruby:2.7
-WORKDIR /var/task
+FROM public.ecr.aws/lambda/nodejs:20
+
+WORKDIR ${LAMBDA_TASK_ROOT}
 
 ENV TZ=Asia/Tokyo
 
-COPY --from=bundler /var/task/vendor ./vendor
-COPY ./ ./
+COPY package*.json ./
+RUN npm ci --omit=dev
 
-CMD ["function.Handler.handle"]
+COPY --from=builder /build/dist/ ./dist/
+
+CMD ["dist/handler.handler"]
