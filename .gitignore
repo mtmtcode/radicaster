@@ -1,2 +1,4 @@
 *.env
 vendor/
+gen_feed/node_modules/
+gen_feed/dist/

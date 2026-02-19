@@ -2,8 +2,9 @@ import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
 import { CachePolicy, Distribution, LambdaEdgeEventType, OriginAccessIdentity, ViewerProtocolPolicy, experimental } from 'aws-cdk-lib/aws-cloudfront';
 import { S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import { CanonicalUserPrincipal, Effect, PolicyStatement, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
-import { Code, DockerImageCode, DockerImageFunction, Runtime } from 'aws-cdk-lib/aws-lambda';
+import { Code, DockerImageCode, DockerImageFunction, Runtime, RuntimeFamily } from 'aws-cdk-lib/aws-lambda';
 import { S3EventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Bucket, EventType } from 'aws-cdk-lib/aws-s3';
 import { SnsDestination } from 'aws-cdk-lib/aws-s3-notifications';
 import { Topic } from 'aws-cdk-lib/aws-sns';
@@ -97,16 +98,21 @@ export class RadicasterStack extends cdk.Stack {
   private setUpFuncGenFeed(bucket: Bucket, dist: Distribution, params: Params, topic: Topic) {
     const authPrefix = `${params.basicAuthUser}:${params.basicAuthPassword}@`
     const domainName = params.customDomain || dist.domainName;
-    const funcGenFeed = new DockerImageFunction(this, `func-gen-feed`, {
-      code: DockerImageCode.fromImageAsset(
-        "../gen_feed"
-      ),
-      functionName: `radicaster-gen-feed${params.suffix}`,
+    const funcGenFeed = new NodejsFunction(this, `func-gen-feed`, {
+      entry: path.join(__dirname, '../../gen_feed/src/handler.ts'),
+      handler: 'handler',
+      runtime: new Runtime('nodejs24.x', RuntimeFamily.NODEJS),
+      functionName: `radicaster-gen-feed-node${params.suffix}`,
       timeout: Duration.minutes(1),
       memorySize: 128,
       environment: {
         "RADICASTER_S3_BUCKET": params.bucketName,
         "RADICASTER_BUCKET_URL": `https://${authPrefix}${domainName}`,
+      },
+      bundling: {
+        forceDockerBundling: false,
+        sourceMap: true,
+        minify: true,
       }
     });
     funcGenFeed.grantInvoke(new ServicePrincipal("events.amazonaws.com"));
