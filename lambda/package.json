@@ -1,7 +1,7 @@
 {
-  "name": "cleanup-episodes",
+  "name": "lambda",
   "version": "0.1.0",
-  "description": "エピソード削除Lambda関数",
+  "description": "Lambda関数群",
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",

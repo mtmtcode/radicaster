@@ -1,5 +1,5 @@
-import { generateFeed } from '../src/feedGenerator';
-import { Definition, Episode } from '../src/types';
+import { generateFeed } from '../../src/gen_feed/feedGenerator';
+import { Definition, Episode } from '../../src/gen_feed/types';
 
 describe('generateFeed', () => {
   const definition: Definition = {

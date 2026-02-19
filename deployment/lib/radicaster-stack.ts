@@ -99,7 +99,7 @@ export class RadicasterStack extends cdk.Stack {
     const authPrefix = `${params.basicAuthUser}:${params.basicAuthPassword}@`
     const domainName = params.customDomain || dist.domainName;
     const funcGenFeed = new NodejsFunction(this, `func-gen-feed`, {
-      entry: path.join(__dirname, '../../gen_feed/src/handler.ts'),
+      entry: path.join(__dirname, '../../lambda/src/gen_feed/handler.ts'),
       handler: 'handler',
       runtime: new Runtime('nodejs24.x', RuntimeFamily.NODEJS),
       functionName: `radicaster-gen-feed-node${params.suffix}`,
@@ -128,7 +128,7 @@ export class RadicasterStack extends cdk.Stack {
 
   private setUpFuncCleanupEpisodes(bucket: Bucket, params: Params, topic: Topic) {
     const funcCleanup = new NodejsFunction(this, `func-cleanup-episodes`, {
-      entry: path.join(__dirname, '../../cleanup_episodes/src/handler.ts'),
+      entry: path.join(__dirname, '../../lambda/src/cleanup_episodes/handler.ts'),
       handler: 'handler',
       runtime: new Runtime('nodejs24.x', RuntimeFamily.NODEJS),
       functionName: `radicaster-cleanup-episodes-node${params.suffix}`,

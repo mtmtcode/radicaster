@@ -1,8 +1,8 @@
 // jest.mock はモジュールトップレベルで宣言する必要がある
-jest.mock('../src/s3');
+jest.mock('../../src/cleanup_episodes/s3');
 
-import { S3Storage } from '../src/s3';
-import { handler } from '../src/handler';
+import { S3Storage } from '../../src/cleanup_episodes/s3';
+import { handler } from '../../src/cleanup_episodes/handler';
 
 // handler.ts がモジュールロード時に new S3Storage() するため、
 // プロトタイプのメソッドをモックして既存インスタンスから参照させる

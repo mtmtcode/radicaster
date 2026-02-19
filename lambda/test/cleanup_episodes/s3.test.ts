@@ -1,5 +1,5 @@
 import { S3Client } from '@aws-sdk/client-s3';
-import { S3Storage } from '../src/s3';
+import { S3Storage } from '../../src/cleanup_episodes/s3';
 
 const mockSend = jest.fn();
 const mockClient = { send: mockSend } as unknown as S3Client;
