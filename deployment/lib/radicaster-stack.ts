@@ -127,15 +127,20 @@ export class RadicasterStack extends cdk.Stack {
   }
 
   private setUpFuncCleanupEpisodes(bucket: Bucket, params: Params, topic: Topic) {
-    const funcCleanup = new DockerImageFunction(this, `func-cleanup-episodes`, {
-      code: DockerImageCode.fromImageAsset(
-        "../cleanup_episodes"
-      ),
-      functionName: `radicaster-cleanup-episodes${params.suffix}`,
+    const funcCleanup = new NodejsFunction(this, `func-cleanup-episodes`, {
+      entry: path.join(__dirname, '../../cleanup_episodes/src/handler.ts'),
+      handler: 'handler',
+      runtime: new Runtime('nodejs24.x', RuntimeFamily.NODEJS),
+      functionName: `radicaster-cleanup-episodes-node${params.suffix}`,
       timeout: Duration.minutes(1),
       memorySize: 128,
       environment: {
         "RADICASTER_S3_BUCKET": params.bucketName,
+      },
+      bundling: {
+        forceDockerBundling: false,
+        sourceMap: true,
+        minify: true,
       }
     });
     if (!funcCleanup.role) {
