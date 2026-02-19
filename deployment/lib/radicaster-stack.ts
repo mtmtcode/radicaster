@@ -2,7 +2,7 @@ import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
 import { CachePolicy, Distribution, LambdaEdgeEventType, OriginAccessIdentity, ViewerProtocolPolicy, experimental } from 'aws-cdk-lib/aws-cloudfront';
 import { S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import { CanonicalUserPrincipal, Effect, PolicyStatement, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
-import { Code, DockerImageCode, DockerImageFunction, Runtime } from 'aws-cdk-lib/aws-lambda';
+import { Code, DockerImageCode, DockerImageFunction, Runtime, RuntimeFamily } from 'aws-cdk-lib/aws-lambda';
 import { S3EventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Bucket, EventType } from 'aws-cdk-lib/aws-s3';
@@ -101,7 +101,7 @@ export class RadicasterStack extends cdk.Stack {
     const funcGenFeed = new NodejsFunction(this, `func-gen-feed`, {
       entry: path.join(__dirname, '../../gen_feed/src/handler.ts'),
       handler: 'handler',
-      runtime: Runtime.NODEJS_20_X,
+      runtime: new Runtime('nodejs24.x', RuntimeFamily.NODEJS),
       functionName: `radicaster-gen-feed-node${params.suffix}`,
       timeout: Duration.minutes(1),
       memorySize: 128,
